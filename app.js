@@ -32,6 +32,9 @@ function setMode(receiving) {
   sendTab.setAttribute('aria-pressed', String(!receiving));
   receiveTab.setAttribute('aria-pressed', String(receiving));
   status.textContent = '';
+  document.querySelector('#wallet-gate-copy').textContent = receiving
+    ? 'Connect a Solana wallet to continue with Receive.'
+    : 'Connect a Solana wallet to continue with Send.';
   document.querySelector('#hero-title').textContent = receiving ? 'Receive money.' : 'Send money.';
   document.querySelector('#hero-accent').textContent = receiving ? 'Share your tag.' : 'Pay by tag.';
   document.querySelector('#hero-copy').textContent = receiving

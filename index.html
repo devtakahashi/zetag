@@ -16,6 +16,10 @@
   </div>
 </header>
 <canvas id="ribbon" aria-hidden="true"></canvas>
+<div class="site-watermark" aria-hidden="true">
+  <span class="watermark-solana"><span class="solana-mark"><i></i><i></i><i></i></span>Solana</span>
+  <span class="watermark-zelle"><span class="zelle-initial">Z</span>elle</span>
+</div>
 <dialog id="wallet-dialog" aria-labelledby="wallet-title">
   <div class="dialog-heading"><h2 id="wallet-title">Connect Wallet</h2><form method="dialog"><button class="wallet-close" aria-label="Close">×</button></form></div>
   <div class="wallet-watermark" aria-hidden="true">
@@ -49,8 +53,15 @@
 </section>
 <section class="card" aria-label="ZeTag payments">
 <div class="tabs"><button id="sendTab" type="button" aria-pressed="true">Send</button><button id="receiveTab" type="button" aria-pressed="false">Receive</button></div>
-<div id="panel"></div>
-<p id="status" role="status"></p>
+<div id="wallet-gate" class="wallet-gate">
+  <h2>Connect your wallet</h2>
+  <p class="help" id="wallet-gate-copy">Connect a Solana wallet to continue with Send.</p>
+  <button class="primary" id="wallet-gate-button" type="button" aria-haspopup="dialog">Connect Wallet</button>
+</div>
+<div id="payment-controls" hidden inert>
+  <div id="panel"></div>
+  <p id="status" role="status"></p>
+</div>
 </section>
 </main>
 <footer class="site-footer">
@@ -60,7 +71,7 @@
     <a class="zelle-wordmark" href="https://www.zelle.com/"><span class="zelle-initial">Z</span>elle<sup aria-hidden="true">®</sup></a>
   </div>
   <div class="footer-bottom">
-    <a class="footer-brand" href="./">ZeTag</a>
+    <a class="footer-brand" href="./"><span class="brand-mark" aria-hidden="true"></span>ZeTag</a>
     <nav aria-label="Footer">
       <a href="privacy.html">Privacy Policy</a>
       <a href="terms.html">Terms of Service</a>

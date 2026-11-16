@@ -23,6 +23,7 @@
   let address = '';
   let request;
   let busy = false;
+  let openedFromPayment = false;
 
   function register(...items) {
     for (const wallet of items) wallets.add(wallet);
@@ -113,6 +114,10 @@
     if (next === address) return;
     request?.abort();
     address = next;
+    get('wallet-gate').hidden = Boolean(address);
+    const controls = get('payment-controls');
+    controls.hidden = !address;
+    controls.inert = !address;
     if (!address) {
       session?.unsubscribe?.();
       session = null;
@@ -121,13 +126,19 @@
     refresh();
   }
 
-  get('wallet-button').onclick = () => { renderWallet(); dialog.showModal(); };
+  function openWallet(fromPayment = false) {
+    openedFromPayment = fromPayment;
+    renderWallet();
+    dialog.showModal();
+  }
+
+  get('wallet-button').onclick = () => openWallet();
+  get('wallet-gate-button').onclick = () => openWallet(true);
   get('history-button').onclick = () => history.showModal();
   historyAction.onclick = () => {
     if (address) { refresh(); return; }
     history.close();
-    renderWallet();
-    dialog.showModal();
+    openWallet();
   };
 
   action.onclick = async () => {
@@ -145,6 +156,10 @@
         if (!key) throw new Error('No Solana account');
         session = { wallet, unsubscribe: wallet.listen(updateAccount) };
         updateAccount(key);
+        if (openedFromPayment && dialog.open) {
+          dialog.close();
+          get('panel').querySelector('input')?.focus();
+        }
       }
     } catch (error) {
       renderWallet(error?.code === 4001 ? 'Connection declined.' : 'Wallet request failed. Please try again.');
