@@ -74,7 +74,11 @@
 </footer>
 <dialog id="share-dialog" class="request-card" aria-labelledby="share-title">
   <form method="dialog" class="request-close"><button class="wallet-close" aria-label="Close">×</button></form>
-  <span class="request-check" aria-hidden="true">✓</span>
+  <div class="brand-pair" aria-hidden="true">
+  <span class="pair-platform"><span class="brand-mark"></span></span>
+  <span class="pair-arrow">↔</span>
+  <span class="pair-recipient"><img alt="" referrerpolicy="no-referrer" hidden><span class="badge-initials" hidden></span><span class="wallet-icon"></span></span>
+</div>
   <h2 id="share-title">Payment request ready</h2>
   <p class="request-amount"><strong id="share-amount"></strong> <span>USDC</span></p>
   <p class="request-note" id="share-note" hidden></p>

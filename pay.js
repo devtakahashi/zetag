@@ -27,8 +27,7 @@
       status.textContent = 'This payment request link is missing information or is invalid.';
       return;
     }
-    get('pay-avatar-wrap').hidden = false;
-    applyBranding(get('pay-title').closest('.request-card'), get('pay-avatar'), get('pay-initials'), { ...fields, name: request.name });
+    applyBranding(document.querySelector('.brand-pair'), { ...fields, name: request.name, tag: request.tag });
     get('pay-title').textContent = personal ? 'Pay ' + request.name : 'Payment request';
     const amount = get('pay-amount');
     amount.parentElement.hidden = personal;

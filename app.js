@@ -5,7 +5,7 @@ const status = document.querySelector('#status');
 const sendTab = document.querySelector('#sendTab');
 const receiveTab = document.querySelector('#receiveTab');
 const params = new URLSearchParams(location.search);
-const { tagPattern, normalizeAmount, formatAmount, branding } = ZeTagRequest;
+const { tagPattern, normalizeAmount, formatAmount, branding, applyBranding } = ZeTagRequest;
 let profile = null;
 
 function cleanTag(value) {
@@ -56,14 +56,14 @@ async function paymentLink(request) {
     const response = await fetch(new URL('_requests', directory), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
+      body: JSON.stringify({ tag: request.tag, amount: request.amount, name: request.name, note: request.note }),
       signal: AbortSignal.timeout(10000)
     });
     if (!response.ok) throw new Error('Could not save payment request');
     const { slug } = await response.json();
     if (typeof slug !== 'string' || !/^[a-z0-9_.-]+$/.test(slug)) throw new Error('Invalid request link');
     const url = new URL(slug, directory);
-    if (request.logo || request.accent !== 'violet') url.hash = new URLSearchParams(branding(request)).toString();
+    if (request.logo) url.hash = new URLSearchParams(branding(request)).toString();
     return url;
   }
   directory.hash = new URLSearchParams(request).toString();
@@ -71,6 +71,7 @@ async function paymentLink(request) {
 }
 
 function openShare(request, url) {
+  applyBranding(shareDialog.querySelector('.brand-pair'), request);
   const personal = !request.amount;
   document.querySelector('#share-title').textContent = personal ? 'Your payment page is ready' : 'Payment request ready';
   const amount = document.querySelector('#share-amount');
@@ -104,7 +105,7 @@ function setQR(open) {
 shareQR.onclick = () => {
   if (shareQR.getAttribute('aria-expanded') === 'true') { setQR(false); return; }
   try {
-    const code = qrcode(0, 'M');
+    const code = qrcode(0, shareUrl.value.length > 1200 ? 'L' : 'M');
     code.addData(shareUrl.value);
     code.make();
     const canvas = document.querySelector('#share-canvas');
@@ -146,7 +147,8 @@ shareCopy.onclick = async () => {
 };
 document.querySelector('#share-edit').onclick = () => {
   shareDialog.close();
-  panel.querySelector('#handle')?.focus();
+  if (panel.querySelector('#personal-result:not([hidden])')) panel.querySelector('#personal-edit').click();
+  else panel.querySelector('#handle')?.focus();
 };
 
 function showSend(tag = '', amount = '', note = '', linkedName = '') {
@@ -192,91 +194,208 @@ function showSend(tag = '', amount = '', note = '', linkedName = '') {
   });
 }
 
+async function compactLogo(file) {
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 8 * 1024 * 1024) {
+    throw new Error('Choose a PNG, JPG, or WebP image up to 8 MB.');
+  }
+  const bitmap = await createImageBitmap(file);
+  try {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    for (const size of [64, 48, 32]) {
+      canvas.width = canvas.height = size;
+      const side = Math.min(bitmap.width, bitmap.height);
+      context.fillStyle = '#31234b';
+      context.fillRect(0, 0, size, size);
+      context.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, size, size);
+      for (const type of ['image/webp', 'image/jpeg']) {
+        const result = canvas.toDataURL(type, .58);
+        if (branding({ logo: result }).logo) return result;
+      }
+    }
+    throw new Error('Could not prepare this image. Try a simpler logo.');
+  } finally {
+    bitmap.close();
+  }
+}
+
 function showReceive() {
   setMode(true);
   panel.innerHTML = `
-    <h2>Request a payment</h2>
-    <p class="help">Choose a handle and create a request link. Your handle is saved in this browser.</p>
+    <button class="text-action" id="back-to-request" type="button" hidden>← Back to payment request</button>
+    <h2 id="receive-title">Request a payment</h2>
+    <p class="help" id="receive-help">Create a link for a specific amount.</p>
     <form>
       <label for="handle">Your ZeTag</label>
       <input id="handle" name="handle" placeholder="@yourname" maxlength="25" required>
       <label for="display">Display name</label>
       <input id="display" name="display" maxlength="50" placeholder="Your name or business" required>
-      <label for="request">Amount in USDC</label>
-      <input id="request" name="request" inputmode="decimal" placeholder="0.00" required>
-      <label for="memo">Note (optional)</label>
-      <input id="memo" name="memo" maxlength="100" placeholder="What’s it for?">
-      <details class="branding-options">
-        <summary>Customize your payment page</summary>
-        <label for="request-logo">Logo image URL (optional)</label>
-        <input id="request-logo" name="logo" type="url" placeholder="https://…" maxlength="300">
-        <label for="request-accent">Accent color</label>
-        <select id="request-accent" name="accent">
-          <option value="violet">Violet</option><option value="mint">Mint</option>
-          <option value="blue">Blue</option><option value="rose">Rose</option>
-        </select>
-      </details>
-      <button class="primary" type="submit" value="request">Create payment link</button>
-      <button class="secondary" type="submit" value="personal" formnovalidate>Create personal payment page</button>
+      <div id="request-fields">
+        <label for="request">Amount in USDC</label>
+        <input id="request" name="request" inputmode="decimal" placeholder="0.00" required>
+        <label for="memo">Note (optional)</label>
+        <input id="memo" name="memo" maxlength="100" placeholder="What’s it for?">
+      </div>
+      <label class="logo-upload" for="request-logo"><strong>Upload logo</strong><small>Optional · PNG, JPG, or WebP</small></label>
+      <input class="logo-file" id="request-logo" type="file" accept="image/png,image/jpeg,image/webp">
+      <button class="text-action" id="clear-logo" type="button" hidden>Remove logo</button>
+      <div class="live-brand" id="live-brand" hidden>
+        <p>Live preview</p>
+        <div class="brand-pair" aria-hidden="true">
+  <span class="pair-platform"><span class="brand-mark"></span></span>
+  <span class="pair-arrow">↔</span>
+  <span class="pair-recipient"><img alt="" referrerpolicy="no-referrer" hidden><span class="badge-initials" hidden></span><span class="wallet-icon"></span></span>
+</div>
+      </div>
+      <button class="primary" type="submit">Create payment link</button>
+      <button class="secondary" id="personal-editor" type="button">Create personal payment page</button>
     </form>
-    <details><summary>Have a US Zelle Tag?</summary>Zelle Tag linking is currently unavailable.</details>`;
-  panel.querySelector('#handle').value = profile?.tag ?? '';
-  panel.querySelector('#display').value = profile?.name ?? '';
-  const savedBrand = branding(profile ?? {});
-  panel.querySelector('#request-logo').value = savedBrand.logo;
-  panel.querySelector('#request-accent').value = savedBrand.accent;
-  panel.querySelector('form').addEventListener('input', () => {
+    <section class="personal-result" id="personal-result" hidden>
+      <h3>Your page is ready</h3>
+      <p id="personal-recipient"></p>
+      <button type="button" class="primary" id="personal-copy">Copy page link</button>
+      <input id="personal-url" aria-label="Personal payment page link" readonly hidden>
+      <div class="request-actions">
+        <a id="personal-preview" target="_blank" rel="noopener">Open payment page</a>
+        <button id="personal-share" type="button">Share or show QR</button>
+        <button id="personal-edit" type="button">Edit page</button>
+      </div>
+    </section>
+    <details id="zelle-details"><summary>Have a US Zelle Tag?</summary>Zelle Tag linking is currently unavailable.</details>`;
+  const get = selector => panel.querySelector(selector);
+  const form = get('form');
+  const handle = get('#handle');
+  const display = get('#display');
+  const file = get('#request-logo');
+  const clear = get('#clear-logo');
+  const submit = get('button[type=submit]');
+  const result = get('#personal-result');
+  const amountInput = get('#request');
+  let personal = false;
+  let logo = branding(profile ?? {}).logo;
+  let uploadVersion = 0;
+  let imageBusy = false;
+  handle.value = profile?.tag ?? '';
+  display.value = profile?.name ?? '';
+
+  function updatePreview() {
+    applyBranding(get('.live-brand .brand-pair'), { logo, name: display.value.trim(), tag: cleanTag(handle.value) });
+    clear.hidden = !logo && !imageBusy;
+  }
+
+  function setPersonal(enabled) {
+    personal = enabled;
+    form.hidden = false;
+    result.hidden = true;
+    get('#request-fields').hidden = enabled;
+    amountInput.disabled = enabled;
+    get('#live-brand').hidden = !enabled;
+    get('#personal-editor').hidden = enabled;
+    get('#back-to-request').hidden = !enabled;
+    get('#zelle-details').hidden = enabled;
+    get('#receive-title').textContent = enabled ? 'Set up your payment page' : 'Request a payment';
+    get('#receive-help').textContent = enabled ? 'Share one reusable page and let the payer choose the amount.' : 'Create a link for a specific amount.';
+    submit.textContent = enabled ? 'Save payment page' : 'Create payment link';
     status.textContent = '';
-  });
-  panel.querySelector('form').addEventListener('submit', async event => {
+    updatePreview();
+  }
+
+  get('#personal-editor').onclick = () => { setPersonal(true); handle.focus(); };
+  get('#back-to-request').onclick = () => { setPersonal(false); amountInput.focus(); };
+  get('#personal-edit').onclick = () => { setPersonal(true); handle.focus(); };
+  form.addEventListener('input', () => { status.textContent = ''; updatePreview(); });
+  file.onchange = async () => {
+    if (!file.files[0]) return;
+    const version = ++uploadVersion;
+    imageBusy = true;
+    submit.disabled = true;
+    updatePreview();
+    status.textContent = 'Preparing your logo…';
+    try {
+      const data = await compactLogo(file.files[0]);
+      if (version !== uploadVersion || !form.isConnected) return;
+      logo = data;
+      status.textContent = 'Logo ready.';
+    } catch (error) {
+      if (version === uploadVersion && form.isConnected) status.textContent = error.message || 'Could not read this image.';
+    } finally {
+      if (version === uploadVersion && form.isConnected) {
+        imageBusy = false;
+        submit.disabled = Boolean(form.dataset.creating);
+        file.value = '';
+        updatePreview();
+      }
+    }
+  };
+  clear.onclick = () => {
+    uploadVersion++;
+    imageBusy = false;
+    submit.disabled = Boolean(form.dataset.creating);
+    file.value = '';
+    logo = '';
+    status.textContent = '';
+    updatePreview();
+  };
+
+  form.addEventListener('submit', async event => {
     event.preventDefault();
-    const form = event.currentTarget;
-    const submit = event.submitter ?? form.querySelector('button[type=submit]');
-    const personal = submit.value === 'personal';
-    if (form.dataset.creating) return;
-    const values = new FormData(form);
-    const tag = cleanTag(values.get('handle'));
-    const name = String(values.get('display')).trim();
-    const amount = normalizeAmount(values.get('request'));
+    if (form.dataset.creating || imageBusy) return;
+    const tag = cleanTag(handle.value);
+    const name = display.value.trim();
+    const amount = personal ? '' : normalizeAmount(amountInput.value);
     if (!tagPattern.test(tag) || !name) {
-      status.textContent = 'Choose a tag with 3–24 letters, numbers, underscores or hyphens, and enter a display name.';
+      status.textContent = 'Choose a valid tag and enter a display name.';
       return;
     }
     if (!personal && !amount) {
       status.textContent = 'Enter a positive USDC amount, such as 0.23 or 1,000.';
       return;
     }
-    const brand = branding({ logo: values.get('logo'), accent: values.get('accent') });
-    if (values.get('logo').trim() && !brand.logo) {
-      status.textContent = 'Use a valid HTTPS image URL for your logo.';
-      return;
-    }
-    if (!walletAllows(form, submit)) return;
-    profile = { tag, name, ...brand };
+    if (!walletAllows(form, event.submitter ?? submit)) return;
+    profile = { tag, name, logo };
     try {
       localStorage.setItem('zetag-profile', JSON.stringify(profile));
     } catch {
-      status.textContent = 'Your browser blocked local storage. You can still copy this link.';
+      status.textContent = 'Your browser blocked local storage. You can still share this link.';
     }
-    const request = { tag, amount: personal ? '' : amount, note: values.get('memo').trim(), name, ...brand };
+    const request = { ...profile, amount, note: personal ? '' : get('#memo').value.trim() };
+    if (personal) {
+      const url = new URL('./pay/', location.href);
+      url.hash = new URLSearchParams({ ...request, profile: '1' }).toString();
+      form.hidden = true;
+      result.hidden = false;
+      get('#personal-recipient').textContent = name + ' · @' + tag;
+      get('#personal-preview').href = url.href;
+      const field = get('#personal-url');
+      field.hidden = true;
+      field.value = url.href;
+      get('#personal-copy').onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(url.href);
+          status.textContent = 'Page link copied.';
+        } catch {
+          field.hidden = false;
+          field.focus();
+          field.select();
+        }
+      };
+      get('#personal-share').onclick = () => openShare(request, url);
+      get('#personal-copy').focus();
+      return;
+    }
     form.dataset.creating = 'true';
     submit.disabled = true;
     try {
-      let url;
-      if (personal) {
-        url = new URL('./pay/', location.href);
-        url.hash = new URLSearchParams({ ...request, profile: '1' }).toString();
-      } else {
-        url = await paymentLink(request);
-      }
+      const url = await paymentLink(request);
       if (form.isConnected) openShare(request, url);
     } catch {
       if (form.isConnected) status.textContent = 'Could not create the link. Please try again.';
     } finally {
       delete form.dataset.creating;
-      submit.disabled = false;
+      submit.disabled = imageBusy;
     }
   });
+  updatePreview();
 }
 
 profile = readProfile();

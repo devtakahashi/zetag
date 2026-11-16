@@ -361,3 +361,24 @@ header .brand-mark { width: 48px; height: 48px; flex: 0 0 48px; }
 }
 #receipt-dialog { width:min(420px,calc(100% - 28px)); padding-top:46px; }
 #receipt-text { width:100%; min-height:90px; margin-top:10px; }
+
+.brand-pair { display:flex; justify-content:center; align-items:center; gap:14px; margin:0 auto 16px; }
+.pair-platform,.pair-recipient { display:grid; place-items:center; width:54px; height:54px; overflow:hidden; }
+.pair-platform { background:#1d142d; border-radius:14px; }
+.pair-platform .brand-mark { width:46px; height:46px; }
+.pair-recipient { border-radius:50%; background:#42296b; color:#fff; }
+.pair-recipient img { width:100%; height:100%; object-fit:cover; }
+.badge-initials { font-size:21px; font-weight:800; letter-spacing:-.04em; }
+.pair-arrow { font-size:23px; color:#c1a6fb; }
+.logo-upload {
+  display:grid; place-items:center; gap:2px; padding:14px;
+  border:1px dashed #765a9b; border-radius:12px; background:#21172f;
+  text-align:center; cursor:pointer;
+}
+.logo-upload small,.live-brand p { color:var(--muted); font-size:12px; }
+.logo-file { width:1px; height:1px; position:absolute; opacity:0; }
+form:has(.logo-file:focus-visible) .logo-upload { outline:2px solid #c4aaff; outline-offset:2px; }
+.live-brand { padding-top:10px; }
+.live-brand .brand-pair { background:#1c1628; border-radius:12px; padding:10px; }
+.text-action { border:0; background:none; color:#dac8fb; padding:5px 0; text-decoration:underline; }
+.personal-result p { color:var(--muted); }
