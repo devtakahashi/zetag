@@ -23,7 +23,7 @@
   let address = '';
   let request;
   let busy = false;
-  let openedFromPayment = false;
+  let pendingForm = null;
 
   function register(...items) {
     for (const wallet of items) wallets.add(wallet);
@@ -114,10 +114,6 @@
     if (next === address) return;
     request?.abort();
     address = next;
-    get('wallet-gate').hidden = Boolean(address);
-    const controls = get('payment-controls');
-    controls.hidden = !address;
-    controls.inert = !address;
     if (!address) {
       session?.unsubscribe?.();
       session = null;
@@ -126,14 +122,19 @@
     refresh();
   }
 
-  function openWallet(fromPayment = false) {
-    openedFromPayment = fromPayment;
+  function openWallet() {
     renderWallet();
     dialog.showModal();
   }
 
   get('wallet-button').onclick = () => openWallet();
-  get('wallet-gate-button').onclick = () => openWallet(true);
+  get('panel').addEventListener('zetag:payment-submit', event => {
+    if (address) return;
+    event.preventDefault();
+    pendingForm = event.target;
+    if (!dialog.open) openWallet();
+  });
+  dialog.addEventListener('close', () => { pendingForm = null; });
   get('history-button').onclick = () => history.showModal();
   historyAction.onclick = () => {
     if (address) { refresh(); return; }
@@ -156,9 +157,11 @@
         if (!key) throw new Error('No Solana account');
         session = { wallet, unsubscribe: wallet.listen(updateAccount) };
         updateAccount(key);
-        if (openedFromPayment && dialog.open) {
+        const form = pendingForm;
+        pendingForm = null;
+        if (form?.isConnected && dialog.open) {
           dialog.close();
-          get('panel').querySelector('input')?.focus();
+          form.requestSubmit();
         }
       }
     } catch (error) {

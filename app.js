@@ -6,16 +6,25 @@ const sendTab = document.querySelector('#sendTab');
 const receiveTab = document.querySelector('#receiveTab');
 const params = new URLSearchParams(location.search);
 const tagPattern = /^[a-z0-9][a-z0-9_-]{2,23}$/;
-const amountPattern = /^[0-9]{1,7}(?:\.[0-9]{1,2})?$/;
-const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+const amountPattern = /^(?:[0-9]+|[0-9]{1,3}(?:,[0-9]{3})+)(?:\.[0-9]{1,2})?$/;
 let profile = null;
 
 function cleanTag(value) {
   return String(value ?? '').trim().toLowerCase().replace(/^@/, '');
 }
 
-function validAmount(value) {
-  return amountPattern.test(value) && Number(value) > 0;
+function normalizeAmount(value) {
+  const input = String(value ?? '').trim();
+  if (!amountPattern.test(input)) return '';
+  const normalized = input.replaceAll(',', '');
+  return /[1-9]/.test(normalized) ? normalized : '';
+}
+
+function walletAllows(form) {
+  return form.dispatchEvent(new CustomEvent('zetag:payment-submit', {
+    bubbles: true,
+    cancelable: true
+  }));
 }
 
 function readProfile() {
@@ -32,9 +41,6 @@ function setMode(receiving) {
   sendTab.setAttribute('aria-pressed', String(!receiving));
   receiveTab.setAttribute('aria-pressed', String(receiving));
   status.textContent = '';
-  document.querySelector('#wallet-gate-copy').textContent = receiving
-    ? 'Connect a Solana wallet to continue with Receive.'
-    : 'Connect a Solana wallet to continue with Send.';
   document.querySelector('#hero-title').textContent = receiving ? 'Receive money.' : 'Send money.';
   document.querySelector('#hero-accent').textContent = receiving ? 'Share your tag.' : 'Pay by tag.';
   document.querySelector('#hero-copy').textContent = receiving
@@ -75,7 +81,7 @@ function showSend(tag = '', amount = '', note = '', linkedName = '') {
       <label for="to">Recipient tag</label>
       <input id="to" name="tag" placeholder="@recipient" maxlength="25" required>
       <label for="amount">Amount in USDC</label>
-      <input id="amount" name="amount" inputmode="decimal" placeholder="0.00" maxlength="10" required>
+      <input id="amount" name="amount" inputmode="decimal" placeholder="0.00" required>
       <p class="help" id="note" hidden></p>
       <button class="primary">Review payment</button>
     </form>`;
@@ -95,15 +101,16 @@ function showSend(tag = '', amount = '', note = '', linkedName = '') {
     event.preventDefault();
     const values = new FormData(event.currentTarget);
     const target = cleanTag(values.get('tag'));
-    const total = String(values.get('amount')).trim();
+    const total = normalizeAmount(values.get('amount'));
     if (!tagPattern.test(target)) {
       status.textContent = 'Enter a valid recipient tag.';
       return;
     }
-    if (!validAmount(total)) {
-      status.textContent = 'Enter a positive amount with up to two decimal places.';
+    if (!total) {
+      status.textContent = 'Enter a positive USDC amount, such as 0.23 or 1,000.';
       return;
     }
+    if (!walletAllows(event.currentTarget)) return;
     status.textContent = 'USDC transfers are currently unavailable.';
   });
 }
@@ -118,8 +125,8 @@ function showReceive() {
       <input id="handle" name="handle" placeholder="@yourname" maxlength="25" required>
       <label for="display">Display name</label>
       <input id="display" name="display" maxlength="50" placeholder="Your name or business" required>
-      <label for="request">Amount in USDC (optional)</label>
-      <input id="request" name="request" inputmode="decimal" placeholder="0.00" maxlength="10">
+      <label for="request">Amount in USDC</label>
+      <input id="request" name="request" inputmode="decimal" placeholder="0.00" required>
       <label for="memo">Note (optional)</label>
       <input id="memo" name="memo" maxlength="100" placeholder="What’s it for?">
       <button class="primary">Create payment link</button>
@@ -142,15 +149,16 @@ function showReceive() {
     const values = new FormData(event.currentTarget);
     const tag = cleanTag(values.get('handle'));
     const name = String(values.get('display')).trim();
-    const amount = String(values.get('request')).trim();
+    const amount = normalizeAmount(values.get('request'));
     if (!tagPattern.test(tag) || !name) {
       status.textContent = 'Choose a tag with 3–24 letters, numbers, underscores or hyphens, and enter a display name.';
       return;
     }
-    if (amount && !validAmount(amount)) {
-      status.textContent = 'Enter a positive amount with up to two decimal places.';
+    if (!amount) {
+      status.textContent = 'Enter a positive USDC amount, such as 0.23 or 1,000.';
       return;
     }
+    if (!walletAllows(event.currentTarget)) return;
     profile = { tag, name };
     try {
       localStorage.setItem('zetag-profile', JSON.stringify(profile));
@@ -169,10 +177,10 @@ profile = readProfile();
 sendTab.onclick = () => showSend();
 receiveTab.onclick = showReceive;
 const requestedTag = cleanTag(params.get('tag'));
-const requestedAmount = params.get('amount') ?? '';
+const requestedAmount = normalizeAmount(params.get('amount'));
 showSend(
   tagPattern.test(requestedTag) ? requestedTag : '',
-  validAmount(requestedAmount) ? requestedAmount : '',
+  requestedAmount,
   (params.get('note') ?? '').slice(0, 100),
   (params.get('name') ?? '').slice(0, 50)
 );
