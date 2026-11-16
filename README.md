@@ -33,3 +33,32 @@ in index.html to use a browser-compatible RPC endpoint. URLs in HTML are public.
 The footer links to privacy.html, terms.html, and help.html. Upload all three
 with the homepage. Review the privacy and terms copy against your production
 operations before relying on it as your published policy.
+
+## Share popup and payer checkout
+
+GitHub Pages can serve `pay/index.html` immediately. With the default settings,
+links use `/pay/#…` and include the request fields in the fragment. The popup
+hides this longer URL until the clipboard needs a manual fallback. Treat request
+details as shareable and unverified. Checkout previews the request with payment
+disabled.
+
+### Optional clean links
+
+The included Cloudflare Worker and D1 schema enable URLs like
+`zetag.fun/pay/deficrawler-5000-<id>` with one stored request per link.
+The domain must be on Cloudflare DNS, with the GitHub Pages site still serving
+the other paths and the apex web record proxied. Deploy the frontend files to
+GitHub Pages before enabling the worker.
+
+1. From `backend/`, run `npx wrangler d1 create zetag-requests` and insert the
+   returned database ID into `wrangler.toml`.
+2. Apply the schema with
+   `npx wrangler d1 execute zetag-requests --remote --file=schema.sql`.
+3. Run `npx wrangler deploy`. Configure rate limits on POST `/pay/_requests`
+   before opening it to public traffic. The endpoint accepts public requests.
+4. Add `<meta name="zetag-short-links" content="enabled">` to the homepage
+   and deploy it. Test creating a request and opening it in another browser.
+
+Stored notes and display names are accessible to anyone with the link. Use
+non-sensitive request details. USDC transfer and verified tag ownership require
+separate wallet and registry functionality.

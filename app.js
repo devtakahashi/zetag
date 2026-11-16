@@ -5,19 +5,11 @@ const status = document.querySelector('#status');
 const sendTab = document.querySelector('#sendTab');
 const receiveTab = document.querySelector('#receiveTab');
 const params = new URLSearchParams(location.search);
-const tagPattern = /^[a-z0-9][a-z0-9_-]{2,23}$/;
-const amountPattern = /^(?:[0-9]+|[0-9]{1,3}(?:,[0-9]{3})+)(?:\.[0-9]{1,2})?$/;
+const { tagPattern, normalizeAmount, formatAmount } = ZeTagRequest;
 let profile = null;
 
 function cleanTag(value) {
   return String(value ?? '').trim().toLowerCase().replace(/^@/, '');
-}
-
-function normalizeAmount(value) {
-  const input = String(value ?? '').trim();
-  if (!amountPattern.test(input)) return '';
-  const normalized = input.replaceAll(',', '');
-  return /[1-9]/.test(normalized) ? normalized : '';
 }
 
 function walletAllows(form) {
@@ -52,25 +44,60 @@ function text(selector, value) {
   panel.querySelector(selector).textContent = value;
 }
 
-function paymentLink(tag, amount, note, name) {
-  const url = new URL(location.href);
-  url.search = '';
-  url.hash = '';
-  url.searchParams.set('tag', tag);
-  if (amount) url.searchParams.set('amount', amount);
-  if (note) url.searchParams.set('note', note);
-  if (name) url.searchParams.set('name', name);
-  return url.href;
+const shareDialog = document.querySelector('#share-dialog');
+const shareUrl = document.querySelector('#share-url');
+const shareCopy = document.querySelector('#share-copy');
+const shareFeedback = document.querySelector('#share-feedback');
+
+async function paymentLink(request) {
+  const directory = new URL('./pay/', location.href);
+  if (document.querySelector('meta[name="zetag-short-links"]')?.content === 'enabled') {
+    const response = await fetch(new URL('_requests', directory), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+      signal: AbortSignal.timeout(10000)
+    });
+    if (!response.ok) throw new Error('Could not save payment request');
+    const { slug } = await response.json();
+    if (typeof slug !== 'string' || !/^[a-z0-9_.-]+$/.test(slug)) throw new Error('Invalid request link');
+    return new URL(slug, directory);
+  }
+  directory.hash = new URLSearchParams(request).toString();
+  return directory;
 }
 
-async function copy(value, label) {
-  try {
-    await navigator.clipboard.writeText(value);
-    status.textContent = label;
-  } catch {
-    status.textContent = 'Copy the value from the field above.';
-  }
+function openShare(request, url) {
+  document.querySelector('#share-amount').textContent = formatAmount(request.amount);
+  const note = document.querySelector('#share-note');
+  note.textContent = request.note;
+  note.hidden = !request.note;
+  document.querySelector('#share-person').textContent = request.name + ' · @' + request.tag;
+  shareUrl.value = url.href;
+  shareUrl.hidden = Boolean(url.hash);
+  document.querySelector('#share-preview').href = url.href;
+  shareCopy.textContent = 'Copy payment link';
+  shareFeedback.textContent = '';
+  shareDialog.showModal();
 }
+
+shareCopy.onclick = async () => {
+  const url = shareUrl.value;
+  try {
+    await navigator.clipboard.writeText(url);
+    if (shareDialog.open && shareUrl.value === url) shareCopy.textContent = 'Link copied';
+  } catch {
+    if (!shareDialog.open || shareUrl.value !== url) return;
+    shareUrl.hidden = false;
+    shareUrl.focus();
+    shareUrl.select();
+    shareFeedback.textContent = 'Copy the selected link.';
+  }
+};
+document.querySelector('#share-edit').onclick = () => {
+  shareDialog.close();
+  panel.querySelector('#request')?.focus();
+};
 
 function showSend(tag = '', amount = '', note = '', linkedName = '') {
   setMode(false);
@@ -131,22 +158,18 @@ function showReceive() {
       <input id="memo" name="memo" maxlength="100" placeholder="What’s it for?">
       <button class="primary">Create payment link</button>
     </form>
-    <div id="output" hidden>
-      <label for="url">Your payment request link</label>
-      <input id="url" readonly>
-      <button class="secondary" id="copy">Copy link</button>
-      <a class="linkbutton" id="open">Open payment page</a>
-    </div>
     <details><summary>Have a US Zelle Tag?</summary>Zelle Tag linking is currently unavailable.</details>`;
   panel.querySelector('#handle').value = profile?.tag ?? '';
   panel.querySelector('#display').value = profile?.name ?? '';
   panel.querySelector('form').addEventListener('input', () => {
-    panel.querySelector('#output').hidden = true;
     status.textContent = '';
   });
-  panel.querySelector('form').addEventListener('submit', event => {
+  panel.querySelector('form').addEventListener('submit', async event => {
     event.preventDefault();
-    const values = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const submit = form.querySelector('button[type=submit], button');
+    if (submit.disabled) return;
+    const values = new FormData(form);
     const tag = cleanTag(values.get('handle'));
     const name = String(values.get('display')).trim();
     const amount = normalizeAmount(values.get('request'));
@@ -165,11 +188,16 @@ function showReceive() {
     } catch {
       status.textContent = 'Your browser blocked local storage. You can still copy this link.';
     }
-    const url = paymentLink(tag, amount, values.get('memo').trim(), name);
-    panel.querySelector('#url').value = url;
-    panel.querySelector('#open').href = url;
-    panel.querySelector('#output').hidden = false;
-    panel.querySelector('#copy').onclick = () => copy(url, 'Payment link copied.');
+    const request = { tag, amount, note: values.get('memo').trim(), name };
+    submit.disabled = true;
+    try {
+      const url = await paymentLink(request);
+      if (form.isConnected) openShare(request, url);
+    } catch {
+      if (form.isConnected) status.textContent = 'Could not create the link. Please try again.';
+    } finally {
+      submit.disabled = false;
+    }
   });
 }
 

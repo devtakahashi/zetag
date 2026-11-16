@@ -303,3 +303,30 @@ header .brand-mark { width: 48px; height: 48px; flex: 0 0 48px; }
 @media(max-width: 420px) {
   header .brand-mark { width: 37px; height: 37px; flex-basis: 37px; }
 }
+
+.request-card { text-align: center; overflow-wrap: anywhere; }
+#share-dialog { width: min(440px,calc(100% - 28px)); max-height: calc(100dvh - 28px); }
+#share-dialog::backdrop { backdrop-filter: blur(4px); }
+.request-close { position: absolute; top: 14px; right: 14px; }
+.request-check {
+  display: grid; place-items: center; margin: 0 auto 14px;
+  width: 43px; height: 43px; border-radius: 50%; background: #5c39cc;
+  color: white; font-size: 24px; font-weight: 800;
+}
+.request-amount { margin: 14px 0 8px; font-size: clamp(24px,6vw,38px); line-height: 1.12; }
+.request-amount span { font-size: .66em; color: #e2d3ff; }
+.request-note { margin: 10px 0; }
+.request-person { color: #cbbde6; margin: 12px 0 16px; }
+.request-url { text-align: center; font-size: 13px; text-overflow: ellipsis; }
+.request-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; margin-top: 14px; }
+.request-actions button,.request-actions a {
+  border: 0; padding: 5px; background: none; color: #ded0fb; font: inherit;
+  font-size: 13px; text-decoration: underline;
+}
+.request-feedback { color: #ded0fb; font-size: 13px; margin: 10px 0 0; }
+.request-feedback:empty { display:none; }
+.checkout-main { display: grid; grid-template-columns: minmax(0,1fr); place-items:center; }
+.checkout-main .card { width: min(100%,480px); }
+.checkout-main h1 { font-size: 28px; letter-spacing: -.04em; }
+.checkout-network { display: inline-flex; align-items:center; gap: 9px; background: #211a2d; padding: 8px 12px; border-radius:10px; }
+.primary:disabled { cursor: default; opacity: .58; }

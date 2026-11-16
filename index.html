@@ -72,6 +72,22 @@
     </nav>
   </div>
 </footer>
+<dialog id="share-dialog" class="request-card" aria-labelledby="share-title">
+  <form method="dialog" class="request-close"><button class="wallet-close" aria-label="Close">×</button></form>
+  <span class="request-check" aria-hidden="true">✓</span>
+  <h2 id="share-title">Payment request ready</h2>
+  <p class="request-amount"><strong id="share-amount"></strong> <span>USDC</span></p>
+  <p class="request-note" id="share-note" hidden></p>
+  <p class="request-person" id="share-person"></p>
+  <input class="request-url" id="share-url" aria-label="Payment request link" readonly>
+  <button class="primary" id="share-copy" type="button">Copy payment link</button>
+  <p class="request-feedback" id="share-feedback" role="status"></p>
+  <div class="request-actions">
+    <a id="share-preview" target="_blank" rel="noopener">Preview as payer</a>
+    <button id="share-edit" type="button">Edit request</button>
+  </div>
+</dialog>
+<script src="request-data.js" defer></script>
 <script src="app.js" defer></script>
 <script src="appearance.js" defer></script>
 <script src="wallet.js" defer></script>
