@@ -4,23 +4,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Send and request payments by tag with ZeTag.">
 <title>ZeTag | Pay by tag</title>
+<link rel="icon" type="image/png" href="zetag-icon.png">
 <link rel="stylesheet" href="style.css">
 <header>
   <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"></span>ZeTag</a>
+  <div class="wallet-tools">
+  <button class="wallet-button history-button" id="history-button" type="button" aria-label="Transaction history" title="Transaction history" aria-haspopup="dialog"><span aria-hidden="true">↺</span></button>
   <button class="wallet-button" id="wallet-button" type="button" aria-haspopup="dialog">
     <span class="wallet-icon" aria-hidden="true"></span><span id="wallet-label">Connect Wallet</span>
   </button>
+  </div>
 </header>
 <canvas id="ribbon" aria-hidden="true"></canvas>
 <dialog id="wallet-dialog" aria-labelledby="wallet-title">
   <div class="dialog-heading"><h2 id="wallet-title">Connect Wallet</h2><form method="dialog"><button class="wallet-close" aria-label="Close">×</button></form></div>
-  <p id="wallet-status" class="help" role="status">Connect your Solana wallet with Phantom.</p>
-  <button id="wallet-action" class="primary" type="button">Connect Phantom</button>
-  <a id="wallet-fallback" class="linkbutton" hidden>Open Phantom</a>
+  <p id="wallet-status" class="help" role="status"></p>
+  <div class="wallet-options" id="wallet-options" aria-label="Solana wallets"></div>
+  <div id="wallet-overview" hidden>
+    <dl class="wallet-stats">
+      <div><dt>Balance</dt><dd id="wallet-balance">—</dd></div>
+      <div><dt>Total received</dt><dd id="wallet-received">—</dd></div>
+      <div><dt>Total sent</dt><dd id="wallet-sent">—</dd></div>
+    </dl>
+    <p id="wallet-data-status" class="help" role="status"></p>
+  </div>
+  <button id="wallet-action" class="primary" type="button">Connect Wallet</button>
+  <a id="wallet-fallback" class="linkbutton" hidden>Get wallet</a>
+</dialog>
+<dialog id="history-dialog" aria-labelledby="history-title">
+  <div class="dialog-heading"><h2 id="history-title">Transaction History</h2><form method="dialog"><button class="wallet-close" aria-label="Close">×</button></form></div>
+  <p id="history-status" class="help" role="status"></p>
+  <ul id="history-list" class="history-list"></ul>
+  <button id="history-action" class="secondary" type="button">Connect Wallet</button>
 </dialog>
 <main>
 <section class="intro">
-<p class="network"><i></i> POWERED BY SOLANA</p>
 <h1><span id="hero-title">Send money.</span><br><em id="hero-accent">Pay by tag.</em></h1>
 <p id="hero-copy">Send USDC on Solana by tag. Use a ZeTag handle or an eligible US recipient’s linked Zelle Tag.</p>
 </section>
@@ -36,7 +54,6 @@
     <a class="solana-wordmark" href="https://solana.com/"><span class="solana-mark" aria-hidden="true"><i></i><i></i><i></i></span>Solana</a>
     <a class="zelle-wordmark" href="https://www.zelle.com/"><span class="zelle-initial">Z</span>elle<sup aria-hidden="true">®</sup></a>
   </div>
-  <p class="footer-integration">Zelle Tag linking is currently unavailable.</p>
   <div class="footer-bottom">
     <a class="footer-brand" href="./">ZeTag</a>
     <nav aria-label="Footer">
@@ -48,4 +65,5 @@
 </footer>
 <script src="app.js" defer></script>
 <script src="appearance.js" defer></script>
+<script src="wallet.js" defer></script>
 </html>

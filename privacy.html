@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Privacy Policy | ZeTag</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/png" href="zetag-icon.png">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header><a class="brand" href="./"><span class="brand-mark" aria-hidden="true"></span>ZeTag</a></header>
@@ -17,7 +18,7 @@
 <h2>Payment request links</h2>
 <p>A request link contains the recipient tag and any amount, display name, or note you include. Anyone with the link can read those details. Keep personal and confidential information out of the note.</p>
 <h2>Wallet connection and site delivery</h2>
-<p>If you connect Phantom, ZeTag reads your public wallet address to display it while the page is open. Phantom handles wallet permissions. GitHub Pages hosts the site, and Google Fonts supplies its typefaces. Those services may receive connection data when your browser requests their resources.</p>
+<p>If you connect a wallet, ZeTag reads its public address and queries a Solana RPC provider for the public USDC balance and recent transactions. Your wallet handles connection permissions. GitHub Pages hosts the site, and Google Fonts supplies its typefaces. Those services may receive connection data when your browser requests their resources.</p>
   </article>
 </main>
 <footer class="site-footer">
@@ -26,7 +27,6 @@
     <a class="solana-wordmark" href="https://solana.com/"><span class="solana-mark" aria-hidden="true"><i></i><i></i><i></i></span>Solana</a>
     <a class="zelle-wordmark" href="https://www.zelle.com/"><span class="zelle-initial">Z</span>elle<sup aria-hidden="true">®</sup></a>
   </div>
-  <p class="footer-integration">Zelle Tag linking is currently unavailable.</p>
   <div class="footer-bottom">
     <a class="footer-brand" href="./">ZeTag</a>
     <nav aria-label="Footer">
