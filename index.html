@@ -18,18 +18,23 @@
 <canvas id="ribbon" aria-hidden="true"></canvas>
 <dialog id="wallet-dialog" aria-labelledby="wallet-title">
   <div class="dialog-heading"><h2 id="wallet-title">Connect Wallet</h2><form method="dialog"><button class="wallet-close" aria-label="Close">×</button></form></div>
-  <p id="wallet-status" class="help" role="status"></p>
+  <div class="wallet-watermark" aria-hidden="true">
+    <span class="solana-mark"><i></i><i></i><i></i></span><span class="zelle-watermark"><span class="zelle-initial">Z</span>elle</span>
+  </div>
+  <p class="wallet-prompt">Choose a wallet</p>
+  <p class="wallet-network">Network: Solana</p>
   <div class="wallet-options" id="wallet-options" aria-label="Solana wallets"></div>
-  <div id="wallet-overview" hidden>
+  <button id="wallet-action" class="primary" type="button">Connect Wallet</button>
+  <a id="wallet-fallback" class="linkbutton" hidden>Get wallet</a>
+  <p id="wallet-status" class="wallet-status" role="status"></p>
+  <div id="wallet-overview">
+    <dl class="wallet-balance-row"><div><dt>Wallet balance <small>USDC</small></dt><dd id="wallet-balance">Not connected</dd></div></dl>
     <dl class="wallet-stats">
-      <div><dt>Balance</dt><dd id="wallet-balance">—</dd></div>
       <div><dt>Total received</dt><dd id="wallet-received">—</dd></div>
       <div><dt>Total sent</dt><dd id="wallet-sent">—</dd></div>
     </dl>
     <p id="wallet-data-status" class="help" role="status"></p>
   </div>
-  <button id="wallet-action" class="primary" type="button">Connect Wallet</button>
-  <a id="wallet-fallback" class="linkbutton" hidden>Get wallet</a>
 </dialog>
 <dialog id="history-dialog" aria-labelledby="history-title">
   <div class="dialog-heading"><h2 id="history-title">Transaction History</h2><form method="dialog"><button class="wallet-close" aria-label="Close">×</button></form></div>

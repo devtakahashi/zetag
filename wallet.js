@@ -18,7 +18,7 @@
     { name: 'Solflare', site: 'https://solflare.com/', injected: () => window.solflare },
     { name: 'Backpack', site: 'https://backpack.app/', injected: () => window.backpack?.solana ?? window.backpack }
   ];
-  let choice = 'Phantom';
+  let choice = '';
   let session = null;
   let address = '';
   let request;
@@ -76,27 +76,31 @@
   function renderWallet(error = '') {
     get('wallet-label').textContent = address ? address.slice(0, 4) + '…' + address.slice(-4) : 'Connect Wallet';
     get('wallet-title').textContent = address ? 'Connected wallet' : 'Connect Wallet';
-    get('wallet-status').textContent = error || address || 'Choose a Solana wallet.';
-    get('wallet-overview').hidden = !address;
+    get('wallet-status').textContent = error || address;
     options.hidden = Boolean(address);
+    if (!choice || (!dialog.open && !address && !adapter(known.find(item => item.name === choice)))) {
+      choice = (known.find(item => adapter(item)) ?? known[1]).name;
+    }
     options.replaceChildren();
     for (const item of known) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'wallet-option';
       button.setAttribute('aria-pressed', String(item.name === choice));
-      button.append(item.name);
-      const state = document.createElement('span');
-      state.textContent = adapter(item) ? 'Detected' : 'Get wallet';
-      button.append(state);
+      button.setAttribute('aria-label', item.name);
+      button.title = item.name;
+      const icon = document.createElement('span');
+      icon.className = 'wallet-logo wallet-logo-' + item.name.toLowerCase();
+      icon.setAttribute('aria-hidden', 'true');
+      if (item.name === 'Solflare') icon.textContent = 'S';
+      button.append(icon);
       button.onclick = () => { choice = item.name; renderWallet(); options.querySelector('[aria-pressed="true"]')?.focus(); };
       options.append(button);
     }
     const selected = known.find(item => item.name === choice);
     const available = Boolean(adapter(selected));
-    action.hidden = !address && !available;
     action.disabled = busy;
-    action.textContent = address ? 'Disconnect' : 'Connect ' + choice;
+    action.textContent = address ? 'Disconnect' : 'Connect Wallet';
     fallback.hidden = Boolean(address) || available;
     const phantomMobile = choice === 'Phantom' && /Android|iPhone|iPad/i.test(navigator.userAgent) && location.protocol === 'https:';
     fallback.href = phantomMobile
@@ -137,7 +141,7 @@
         updateAccount();
       } else {
         const wallet = adapter(known.find(item => item.name === choice));
-        if (!wallet) return;
+        if (!wallet) { renderWallet(choice + ' was not detected in this browser.'); return; }
         const key = await wallet.connect();
         if (!key) throw new Error('No Solana account');
         session = { wallet, unsubscribe: wallet.listen(updateAccount) };
@@ -194,7 +198,11 @@
     for (const id of ['wallet-balance','wallet-received','wallet-sent']) get(id).textContent = '—';
     historyAction.textContent = owner ? 'Refresh' : 'Connect Wallet';
     historyStatus.textContent = owner ? 'Loading recent USDC activity…' : 'Connect a Solana wallet to view recent USDC activity.';
-    if (!owner) return;
+    if (!owner) {
+      get('wallet-balance').textContent = 'Not connected';
+      status.textContent = '';
+      return;
+    }
     status.textContent = 'Loading wallet data…';
     const timeout = setTimeout(() => controller.abort(), 25000);
     try {
