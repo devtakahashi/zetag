@@ -5,7 +5,19 @@
 <meta name="description" content="Send and request payments by tag with ZeTag.">
 <title>ZeTag | Pay by tag</title>
 <link rel="stylesheet" href="style.css">
-<header><a class="brand" href="./"><span>↗</span> ZeTag</a></header>
+<header>
+  <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"></span>ZeTag</a>
+  <button class="wallet-button" id="wallet-button" type="button" aria-haspopup="dialog">
+    <span class="wallet-icon" aria-hidden="true"></span><span id="wallet-label">Connect Wallet</span>
+  </button>
+</header>
+<canvas id="ribbon" aria-hidden="true"></canvas>
+<dialog id="wallet-dialog" aria-labelledby="wallet-title">
+  <div class="dialog-heading"><h2 id="wallet-title">Connect Wallet</h2><form method="dialog"><button class="wallet-close" aria-label="Close">×</button></form></div>
+  <p id="wallet-status" class="help" role="status">Connect your Solana wallet with Phantom.</p>
+  <button id="wallet-action" class="primary" type="button">Connect Phantom</button>
+  <a id="wallet-fallback" class="linkbutton" hidden>Open Phantom</a>
+</dialog>
 <main>
 <section class="intro">
 <p class="network"><i></i> POWERED BY SOLANA</p>
@@ -21,4 +33,5 @@
 <aside class="powered">Powered by Solana <span>·</span> USDC</aside>
 <footer><span>ZeTag</span></footer>
 <script src="app.js" defer></script>
+<script src="appearance.js" defer></script>
 </html>

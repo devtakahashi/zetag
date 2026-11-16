@@ -6,7 +6,6 @@ header,main,footer{width:min(1120px,calc(100% - 48px));margin-inline:auto}
 header,footer{display:flex;align-items:center;justify-content:space-between;padding-block:22px}
 header{border-bottom:1px solid var(--border)}
 .brand{display:flex;align-items:center;gap:10px;font:800 26px Manrope,system-ui;text-decoration:none;color:inherit;letter-spacing:-1px}
-.brand span{display:grid;place-items:center;width:34px;height:34px;background:var(--purple);border-radius:11px;color:white}
 .network{color:#5230ba;background:#eee7fd;border-radius:30px;padding:6px 12px;font-size:12px;font-weight:700}
 main{display:grid;grid-template-columns:1.1fr 1fr;gap:clamp(28px,7vw,100px);align-items:center;flex:1;padding-block:64px}
 .network{display:inline-flex;gap:8px;align-items:center;letter-spacing:.08em}
@@ -42,3 +41,49 @@ footer{border-top:1px solid var(--border);color:var(--muted);font-size:13px}
 @media(max-width:740px){main{grid-template-columns:1fr;padding-block:38px;gap:32px}header,main,footer{width:calc(100% - 36px)}.card{padding:18px}.intro>p:not(.network){font-size:16px}}
 
 .powered{padding:18px;text-align:center;color:var(--muted);font-size:14px;font-weight:700}.powered span{margin-inline:6px}
+
+:root {
+  color-scheme: dark;
+  color: #fbf9ff;
+  background: #08070c;
+  --purple: #7649ec;
+  --muted: #bdb7ce;
+  --border: #30283e;
+}
+body {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse at 98% 13%, #3f1171 0%, transparent 38%),
+    radial-gradient(ellipse at 84% 94%, #103b3a 0%, transparent 38%),
+    radial-gradient(ellipse at 65% 87%, #251044 0%, transparent 49%),
+    #08070c;
+}
+#ribbon { position:absolute; z-index:-1; inset:auto 0 0; width:100%; height:76%; pointer-events:none }
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  background: linear-gradient(145deg, #e3d1ff 7%, #a47aff 45%, #55ffd6 92%);
+  clip-path: polygon(16% 12%, 100% 12%, 87% 30%, 37% 71%, 82% 71%, 68% 89%, 0 89%, 12% 70%, 62% 30%, 2% 30%);
+}
+.wallet-button,.wallet-close { color:inherit; background:#171121; border:1px solid #5e477c; border-radius:12px }
+.wallet-button { display:flex; align-items:center; gap:9px; padding:10px 14px; font-size:14px; font-weight:700 }
+.wallet-button:hover,.wallet-close:hover { background:#2b1f3c }
+.wallet-icon { width:16px; height:12px; border:1.5px solid #d9c6ff; border-radius:4px; position:relative }
+.wallet-icon::after { content:""; position:absolute; right:-2px; top:3px; width:6px; height:3px; border-radius:4px; background:#c7aaff }
+.network { color:#dfcaff; background:#211535; border:1px solid #493064 }
+.network i { background:#74f6cf }
+h1 em { color:#b899ff }
+.card,dialog { color:inherit; background:#13101c; border:1px solid var(--border); box-shadow:0 25px 65px #0008 }
+.tabs { background:#211a2d }
+.tabs button[aria-pressed=true] { background:#392853; color:#fff }
+input { background:#0c0913; border-color:#403450 }
+input::placeholder { color:#a29aaf }
+.primary:hover { background:#855bf0 }
+.secondary,.linkbutton { background:#2b1d42; color:#eadcff }
+#status { color:#d1b8ff }
+dialog { border-radius:22px; padding:24px; width:min(408px,calc(100% - 36px)); overflow-wrap:anywhere }
+dialog::backdrop { background:#050309b8 }
+.dialog-heading { display:flex; align-items:center; justify-content:space-between; gap:12px }
+.wallet-close { line-height:1; padding:7px 10px; font-size:21px }
+[hidden] { display:none !important }
