@@ -87,3 +87,61 @@ dialog::backdrop { background:#050309b8 }
 .dialog-heading { display:flex; align-items:center; justify-content:space-between; gap:12px }
 .wallet-close { line-height:1; padding:7px 10px; font-size:21px }
 [hidden] { display:none !important }
+
+.site-footer {
+  display: block;
+  padding: 0;
+  margin-top: 20px;
+}
+.footer-networks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 24px 42px;
+  padding: 25px 0;
+}
+.footer-network {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  min-width: 110px;
+}
+.footer-caption { font-size: 12px; color: var(--muted); }
+.solana-wordmark,.zelle-wordmark { color: #fcfaff; line-height: 1.1; }
+.solana-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  text-transform: uppercase;
+  font: 800 17px Manrope,system-ui,sans-serif;
+  letter-spacing: .1em;
+}
+.solana-mark { display: grid; gap: 2px; }
+.solana-mark i {
+  display: block;
+  width: 19px;
+  height: 4px;
+  border-radius: 1px;
+  transform: skewX(-36deg);
+  background: linear-gradient(90deg,#a975ff,#62f6cd);
+}
+.solana-mark i:nth-child(2) { transform: skewX(36deg); }
+.zelle-wordmark { font-size: 23px; font-weight: 700; letter-spacing: -.06em; }
+.footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  border-top: 1px solid var(--border);
+  padding: 18px 0;
+}
+.footer-bottom nav { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.footer-bottom a,.back-home { color: #ddd3ef; text-decoration: none; }
+.footer-bottom a:hover,.back-home:hover { text-decoration: underline; }
+.footer-brand { font-weight: 800; }
+.info-page { display: block; width: min(720px,calc(100% - 36px)); }
+.info-page h1 { margin-block: 20px 30px; font-size: clamp(40px,7vw,62px); }
+.info-page h2 { margin-top: 28px; font-size: 23px; }
+.info-page p { color: var(--muted); }

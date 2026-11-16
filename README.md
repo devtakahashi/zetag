@@ -22,3 +22,7 @@ The header connects to Phantom through its browser extension or mobile in-app
 browser. Preview over localhost or HTTPS. The app displays the connected
 address and supports disconnecting and account changes. This does not enable
 USDC transfers or register a tag on-chain.
+
+The footer links to privacy.html, terms.html, and help.html. Upload all three
+with the homepage. Review the privacy and terms copy against your production
+operations before relying on it as your published policy.
