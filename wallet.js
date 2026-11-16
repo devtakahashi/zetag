@@ -131,7 +131,7 @@
   get('panel').addEventListener('zetag:payment-submit', event => {
     if (address) return;
     event.preventDefault();
-    pendingForm = event.target;
+    pendingForm = { form: event.target, submitter: event.detail?.submitter };
     if (!dialog.open) openWallet();
   });
   dialog.addEventListener('close', () => { pendingForm = null; });
@@ -157,11 +157,11 @@
         if (!key) throw new Error('No Solana account');
         session = { wallet, unsubscribe: wallet.listen(updateAccount) };
         updateAccount(key);
-        const form = pendingForm;
+        const pending = pendingForm;
         pendingForm = null;
-        if (form?.isConnected && dialog.open) {
+        if (pending?.form.isConnected && dialog.open) {
           dialog.close();
-          form.requestSubmit();
+          pending.form.requestSubmit(pending.submitter);
         }
       }
     } catch (error) {
@@ -200,6 +200,33 @@
         : total;
     }, 0n);
     return sum(tx.meta.postTokenBalances) - sum(tx.meta.preTokenBalances);
+  }
+
+  function openReceipt({ signature, blockTime }, amount, inbound) {
+    const direction = inbound ? 'Received' : 'Sent';
+    const date = blockTime ? new Date(blockTime * 1000) : null;
+    const url = 'https://explorer.solana.com/tx/' + encodeURIComponent(signature);
+    const receipt = get('receipt-dialog');
+    const text = get('receipt-text');
+    const feedback = get('receipt-feedback');
+    get('receipt-amount').textContent = direction + ' ' + format(amount);
+    get('receipt-date').textContent = date ? date.toLocaleString() : 'Date unavailable';
+    get('receipt-link').href = url;
+    text.value = ['Solana USDC transaction receipt', direction + ' ' + format(amount), date?.toISOString(), url].filter(Boolean).join('\n');
+    text.hidden = true;
+    feedback.textContent = '';
+    get('receipt-copy').onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(text.value);
+        feedback.textContent = 'Receipt copied.';
+      } catch {
+        text.hidden = false;
+        text.focus();
+        text.select();
+        feedback.textContent = 'Copy the selected receipt.';
+      }
+    };
+    receipt.showModal();
   }
 
   async function refresh() {
@@ -265,6 +292,14 @@
           }
           link.append(label, (inbound ? '+' : '−') + format(amount));
           row.append(link);
+          if (item.confirmationStatus === 'finalized' || item.confirmationStatus === 'confirmed') {
+            const receiptButton = document.createElement('button');
+            receiptButton.type = 'button';
+            receiptButton.className = 'receipt-button';
+            receiptButton.textContent = 'Receipt';
+            receiptButton.onclick = () => openReceipt(item, amount, inbound);
+            row.append(receiptButton);
+          }
           list.append(row);
         });
       }

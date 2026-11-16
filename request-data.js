@@ -26,5 +26,26 @@ const ZeTagRequest = (() => {
     return { tag, amount, name, note };
   }
 
-  return Object.freeze({ tagPattern, normalizeAmount, formatAmount, validate });
+  const accents = new Set(['violet', 'mint', 'blue', 'rose']);
+  function branding(input) {
+    let logo = '';
+    try {
+      const url = new URL(input.logo);
+      if (url.protocol === 'https:' && !url.username && !url.password && url.href.length <= 300) logo = url.href;
+    } catch {}
+    return { logo, accent: accents.has(input.accent) ? input.accent : 'violet' };
+  }
+
+  function applyBranding(card, avatar, initials, input) {
+    const { logo, accent } = branding(input);
+    card.dataset.accent = accent;
+    avatar.hidden = !logo;
+    if (logo) avatar.src = logo;
+    else avatar.removeAttribute('src');
+    avatar.onerror = () => { avatar.hidden = true; initials.hidden = false; };
+    initials.hidden = Boolean(logo);
+    initials.textContent = input.name.trim().split(/\s+/).slice(0, 2).map(part => Array.from(part)[0]).join('').toUpperCase();
+  }
+
+  return Object.freeze({ tagPattern, normalizeAmount, formatAmount, validate, branding, applyBranding });
 })();

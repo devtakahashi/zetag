@@ -81,14 +81,30 @@
   <p class="request-person" id="share-person"></p>
   <input class="request-url" id="share-url" aria-label="Payment request link" readonly>
   <button class="primary" id="share-copy" type="button">Copy payment link</button>
+  <div class="share-tools">
+    <button type="button" id="share-native" class="secondary" hidden>Share</button>
+    <button type="button" id="share-qr" class="secondary" aria-expanded="false" aria-controls="share-code">Show QR code</button>
+  </div>
+  <div id="share-code" class="share-code" hidden><canvas id="share-canvas" role="img" aria-label="QR code for this link"></canvas></div>
   <p class="request-feedback" id="share-feedback" role="status"></p>
   <div class="request-actions">
     <a id="share-preview" target="_blank" rel="noopener">Preview as payer</a>
     <button id="share-edit" type="button">Edit request</button>
   </div>
 </dialog>
+<script src="vendor/qrcode.js" defer></script>
 <script src="request-data.js" defer></script>
 <script src="app.js" defer></script>
 <script src="appearance.js" defer></script>
+<dialog id="receipt-dialog" class="request-card" aria-labelledby="receipt-title">
+  <form method="dialog" class="request-close"><button class="wallet-close" aria-label="Close">×</button></form>
+  <h2 id="receipt-title">Transaction receipt</h2>
+  <p class="request-amount" id="receipt-amount"></p>
+  <p id="receipt-date" class="request-person"></p>
+  <a class="linkbutton" id="receipt-link" target="_blank" rel="noopener">View on Solana Explorer</a>
+  <button type="button" id="receipt-copy" class="primary">Copy receipt</button>
+  <textarea id="receipt-text" readonly hidden aria-label="Receipt text"></textarea>
+  <p class="request-feedback" id="receipt-feedback" role="status"></p>
+</dialog>
 <script src="wallet.js" defer></script>
 </html>

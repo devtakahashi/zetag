@@ -62,3 +62,19 @@ GitHub Pages before enabling the worker.
 Stored notes and display names are accessible to anyone with the link. Use
 non-sensitive request details. USDC transfer and verified tag ownership require
 separate wallet and registry functionality.
+
+## Branded pages and sharing
+
+Receive can create a reusable personal page or an amount-specific request.
+Personal pages use self-contained `/pay/#…` links. The profile shows a logo
+from an optional HTTPS image URL or falls back to initials. The chosen accent
+color travels with the link. Sharing uses a locally generated QR code and the
+device share sheet where available. A recipient preview shows the name and tag
+from the link, which remain unverified. Hosting a clean permanent username URL
+and showing the last payment to that username require a verified tag registry
+and settlement records.
+
+Transaction History can copy a receipt for confirmed or finalized USDC wallet
+activity it finds. These receipts describe public on-chain balance changes,
+and work for either side when the activity appears in that wallet's recent
+history. They do not attest that ZeTag created or settled the transfer.

@@ -14,12 +14,20 @@
 <header><a class="brand" href="../"><span class="brand-mark" aria-hidden="true"></span>ZeTag</a></header>
 <main class="checkout-main">
   <article class="card request-card" aria-labelledby="pay-title">
+    <div class="checkout-avatar" id="pay-avatar-wrap" hidden>
+      <img id="pay-avatar" alt="" referrerpolicy="no-referrer" hidden>
+      <span id="pay-initials"></span>
+    </div>
     <h1 id="pay-title">Payment request</h1>
     <p id="pay-status" class="help" role="status">Loading payment request…</p>
     <div id="pay-details" hidden>
       <p class="request-amount"><strong id="pay-amount"></strong> <span>USDC</span></p>
       <p class="request-note" id="pay-note" hidden></p>
-      <p class="request-person">Pay to <strong id="pay-name"></strong><br><span id="pay-tag"></span></p>
+      <p class="request-person"><strong id="pay-name"></strong><br><span id="pay-tag"></span><br><small>Recipient details provided by the link creator</small></p>
+      <div id="pay-custom" hidden>
+        <label for="pay-custom-amount">Amount in USDC</label>
+        <input id="pay-custom-amount" inputmode="decimal" placeholder="0.00" autocomplete="off">
+      </div>
       <div class="checkout-network"><span class="solana-mark" aria-hidden="true"><i></i><i></i><i></i></span>Solana</div>
       <button class="primary" id="pay-button" type="button" disabled>Pay USDC</button>
       <p class="help">Payments are currently unavailable.</p>
