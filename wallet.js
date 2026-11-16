@@ -92,7 +92,6 @@
       const icon = document.createElement('span');
       icon.className = 'wallet-logo wallet-logo-' + item.name.toLowerCase();
       icon.setAttribute('aria-hidden', 'true');
-      if (item.name === 'Solflare') icon.textContent = 'S';
       button.append(icon);
       button.onclick = () => { choice = item.name; renderWallet(); options.querySelector('[aria-pressed="true"]')?.focus(); };
       options.append(button);

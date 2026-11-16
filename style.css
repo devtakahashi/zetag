@@ -258,8 +258,8 @@ dialog::backdrop { background:#050309b8 }
 }
 .wallet-logo-phantom::after { position: absolute; content: ''; width: 3px; height: 4px; top: 12px; right: 9px; background: #ab9ef8; box-shadow: -5px 0 #ab9ef8; border-radius: 50%; }
 .wallet-option .wallet-logo-solflare {
-  border-radius: 8px; background: #ffea4b; color: #171520;
-  font: italic 900 28px/34px Georgia,serif; text-align:center;
+  background: url("solflare-icon.png") center / contain no-repeat;
+  border-radius: 8px;
 }
 .wallet-logo-backpack::before { position: absolute; content: ''; inset: 6px 5px 1px; border-radius: 11px 11px 4px 4px; background: linear-gradient(to bottom,#ef4347 65%,transparent 65% 74%,#ef4347 74%); }
 .wallet-logo-backpack::after { position: absolute; content: ''; width: 7px; height: 7px; left: 14px; top: 11px; border-radius: 50%; background: #211a2d; box-shadow: 0 -8px 0 -2px #ef4347; }
