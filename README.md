@@ -1,27 +1,17 @@
-# Zellpay
+# ZeTag
 
-A responsive prototype for sending and requesting USDC by tag.
+A responsive interface for sending and requesting USDC on Solana by tag.
 
-## Run locally
+## Run and publish
 
-Open index.html, or run `python3 -m http.server 8080` in this folder and open
-http://localhost:8080. Localhost enables clipboard support in most browsers.
+Open index.html, or run `python3 -m http.server 8080` and open
+http://localhost:8080. For GitHub Pages, commit these files to the root of
+your publishing branch. No build step is required.
 
-## Try it
+## Current behavior
 
-- Choose Send, enter @drevon and an amount, review the payment, and generate a demo receipt.
-- Choose Receive, pick a tag and display name, optionally set an amount and note, and open the generated payment page.
-
-## GitHub
-
-Commit the files in this folder to your repository. To preview with GitHub Pages,
-publish from the root of the branch containing index.html. No build step or
-environment variables are needed. Serve over HTTPS for clipboard support.
-
-## Prototype limits
-
-Tags are stored locally and are not globally registered or verified. Shareable
-demo links carry unverified profile and request details. Payments and receipts
-are simulated. A live version needs a server-backed tag registry, wallet
-ownership verification, Solana wallet signing, and on-chain payment validation.
-Linking US Zelle Tags requires an authorized ownership verification mechanism.
+Send and Receive switch the hero copy and form. Receive can create
+shareable request links and save the profile in the current browser.
+Request links can prefill Send. Payments are currently unavailable.
+The project has no global tag registry, wallet integration, or authorized
+Zelle Tag linking. The Send form does not issue payment confirmations.
