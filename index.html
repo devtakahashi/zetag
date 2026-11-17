@@ -6,11 +6,10 @@
 <title>ZeTag | Pay by tag</title>
 <link rel="icon" type="image/png" href="zetag-icon.png">
 <link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="profile/profile.css">
 <header>
   <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"></span>ZeTag</a>
   <div class="wallet-tools">
-  <a class="wallet-button profile-entry" href="./profile/">Profile</a>
+  <a class="wallet-button history-button recent-checkout" id="recent-checkout" aria-label="Reopen payment request" title="Reopen payment request" hidden><span aria-hidden="true">▤</span></a>
   <button class="wallet-button history-button" id="history-button" type="button" aria-label="Transaction history" title="Transaction history" aria-haspopup="dialog"><span aria-hidden="true">↺</span></button>
   <button class="wallet-button" id="wallet-button" type="button" aria-haspopup="dialog">
     <span class="wallet-icon" aria-hidden="true"></span><span id="wallet-label">Connect Wallet</span>
@@ -23,23 +22,31 @@
   <span class="watermark-zelle"><span class="zelle-initial">Z</span>elle</span>
 </div>
 <dialog id="wallet-dialog" aria-labelledby="wallet-title">
-  <div class="dialog-heading"><h2 id="wallet-title">Connect Wallet</h2><form method="dialog"><button class="wallet-close" aria-label="Close">×</button></form></div>
+  <div class="dialog-heading"><h2 id="wallet-title">Connect Wallet</h2><div class="wallet-dialog-controls">
+  <button class="wallet-disconnect" id="wallet-disconnect" type="button" hidden>Disconnect</button>
+  <form method="dialog"><button class="wallet-close" aria-label="Close">×</button></form>
+  </div></div>
   <div class="wallet-watermark" aria-hidden="true">
     <span class="solana-mark"><i></i><i></i><i></i></span><span class="zelle-watermark"><span class="zelle-initial">Z</span>elle</span>
   </div>
-  <p class="wallet-prompt">Choose a wallet</p>
+  <p class="wallet-prompt" id="wallet-prompt">Choose a wallet</p>
   <p class="wallet-network">Network: Solana</p>
   <div class="wallet-options" id="wallet-options" aria-label="Solana wallets"></div>
   <button id="wallet-action" class="primary" type="button">Connect Wallet</button>
   <a id="wallet-fallback" class="linkbutton" hidden>Get wallet</a>
   <p id="wallet-status" class="wallet-status" role="status"></p>
   <div id="wallet-overview">
-    <dl class="wallet-balance-row"><div><dt>Wallet balance <small>USDC</small></dt><dd id="wallet-balance">Not connected</dd></div></dl>
+    <dl class="wallet-balance-row"><div><dt>USDC balance</dt><dd><span class="usdc-mark" aria-hidden="true">$</span><span id="wallet-balance">Not connected</span></dd></div></dl>
+    <p id="wallet-balance-status" class="help" role="status"></p>
     <dl class="wallet-stats">
       <div><dt>Total received</dt><dd id="wallet-received">—</dd></div>
       <div><dt>Total sent</dt><dd id="wallet-sent">—</dd></div>
     </dl>
     <p id="wallet-data-status" class="help" role="status"></p>
+    <div class="wallet-overview-actions">
+      <button type="button" class="text-action" id="wallet-refresh" hidden>Refresh wallet data</button>
+      <button type="button" class="text-action" id="wallet-view-history" hidden>View transaction history ↗</button>
+    </div>
   </div>
 </dialog>
 <dialog id="history-dialog" aria-labelledby="history-title">
@@ -100,6 +107,7 @@
 </dialog>
 <script src="vendor/qrcode.js" defer></script>
 <script src="request-data.js" defer></script>
+<script src="saved-pages.js" defer></script>
 <script src="app.js" defer></script>
 <script src="appearance.js" defer></script>
 <dialog id="receipt-dialog" class="request-card" aria-labelledby="receipt-title">

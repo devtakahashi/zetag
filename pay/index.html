@@ -8,12 +8,67 @@
   <link rel="stylesheet" href="../style.css">
   <link rel="icon" type="image/png" href="../zetag-icon.png">
   <script src="../request-data.js" defer></script>
+  <script src="../saved-pages.js" defer></script>
   <script src="../pay.js" defer></script>
+  <script src="../wallet.js" defer></script>
 </head>
 <body>
-<header><a class="brand" href="../"><span class="brand-mark" aria-hidden="true"></span>ZeTag</a></header>
+<header>
+  <a class="brand" href="../"><span class="brand-mark" aria-hidden="true"></span>ZeTag</a>
+  <div class="wallet-tools">
+  <button class="wallet-button history-button" id="history-button" type="button" aria-label="Transaction history" title="Transaction history" aria-haspopup="dialog"><span aria-hidden="true">↺</span></button>
+  <button class="wallet-button" id="wallet-button" type="button" aria-haspopup="dialog">
+    <span class="wallet-icon" aria-hidden="true"></span><span id="wallet-label">Connect Wallet</span>
+  </button>
+  </div>
+</header>
+<dialog id="wallet-dialog" aria-labelledby="wallet-title">
+  <div class="dialog-heading"><h2 id="wallet-title">Connect Wallet</h2><div class="wallet-dialog-controls">
+  <button class="wallet-disconnect" id="wallet-disconnect" type="button" hidden>Disconnect</button>
+  <form method="dialog"><button class="wallet-close" aria-label="Close">×</button></form>
+  </div></div>
+  <div class="wallet-watermark" aria-hidden="true">
+    <span class="solana-mark"><i></i><i></i><i></i></span><span class="zelle-watermark"><span class="zelle-initial">Z</span>elle</span>
+  </div>
+  <p class="wallet-prompt" id="wallet-prompt">Choose a wallet</p>
+  <p class="wallet-network">Network: Solana</p>
+  <div class="wallet-options" id="wallet-options" aria-label="Solana wallets"></div>
+  <button id="wallet-action" class="primary" type="button">Connect Wallet</button>
+  <a id="wallet-fallback" class="linkbutton" hidden>Get wallet</a>
+  <p id="wallet-status" class="wallet-status" role="status"></p>
+  <div id="wallet-overview">
+    <dl class="wallet-balance-row"><div><dt>USDC balance</dt><dd><span class="usdc-mark" aria-hidden="true">$</span><span id="wallet-balance">Not connected</span></dd></div></dl>
+    <p id="wallet-balance-status" class="help" role="status"></p>
+    <dl class="wallet-stats">
+      <div><dt>Total received</dt><dd id="wallet-received">—</dd></div>
+      <div><dt>Total sent</dt><dd id="wallet-sent">—</dd></div>
+    </dl>
+    <p id="wallet-data-status" class="help" role="status"></p>
+    <div class="wallet-overview-actions">
+      <button type="button" class="text-action" id="wallet-refresh" hidden>Refresh wallet data</button>
+      <button type="button" class="text-action" id="wallet-view-history" hidden>View transaction history ↗</button>
+    </div>
+  </div>
+</dialog>
+<dialog id="history-dialog" aria-labelledby="history-title">
+  <div class="dialog-heading"><h2 id="history-title">Transaction History</h2><form method="dialog"><button class="wallet-close" aria-label="Close">×</button></form></div>
+  <p id="history-status" class="help" role="status"></p>
+  <ul id="history-list" class="history-list"></ul>
+  <button id="history-action" class="secondary" type="button">Connect Wallet</button>
+</dialog>
+<dialog id="receipt-dialog" class="request-card" aria-labelledby="receipt-title">
+  <form method="dialog" class="request-close"><button class="wallet-close" aria-label="Close">×</button></form>
+  <h2 id="receipt-title">Transaction receipt</h2>
+  <p class="request-amount" id="receipt-amount"></p>
+  <p id="receipt-date" class="request-person"></p>
+  <a class="linkbutton" id="receipt-link" target="_blank" rel="noopener">View on Solana Explorer</a>
+  <button type="button" id="receipt-copy" class="primary">Copy receipt</button>
+  <textarea id="receipt-text" readonly hidden aria-label="Receipt text"></textarea>
+  <p class="request-feedback" id="receipt-feedback" role="status"></p>
+</dialog>
 <main class="checkout-main">
-  <article class="card request-card" aria-labelledby="pay-title">
+  <article class="card request-card payer-card" aria-labelledby="pay-title">
+    <a class="wallet-close checkout-close" href="../" aria-label="Close payment and return home" title="Close payment">×</a>
 <div class="brand-pair" hidden aria-hidden="true">
   <span class="pair-platform"><span class="brand-mark"></span></span>
   <span class="pair-arrow">↔</span>

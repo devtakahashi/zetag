@@ -45,6 +45,7 @@
     };
     get('pay-details').hidden = false;
     status.hidden = true;
+    ZeTagSaved.setRecent(new URL(location.href));
   } catch {
     status.textContent = 'Could not load this payment request. Please try again.';
   }

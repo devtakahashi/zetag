@@ -76,3 +76,15 @@ Transaction History can copy a receipt for confirmed or finalized USDC wallet
 activity it finds. These receipts describe public on-chain balance changes,
 and work for either side when the activity appears in that wallet's recent
 history. They do not attest that ZeTag created or settled the transfer.
+
+## Returning to a payment page
+
+A personal page saved after wallet connection appears under **My payment
+page** when that wallet returns to Receive in the same browser. This mapping
+is browser-local. Clearing browser data or switching devices removes access to
+that shortcut, and does not invalidate a link you already copied.
+
+Opening a valid payer page remembers the current link for the tab session.
+**Close payment** returns to the homepage and the request icon next to the
+wallet controls reopens it. Wallet connection on checkout is available even
+while live USDC transfers remain disabled.

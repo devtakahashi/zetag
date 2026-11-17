@@ -7,6 +7,7 @@ const receiveTab = document.querySelector('#receiveTab');
 const params = new URLSearchParams(location.search);
 const { tagPattern, normalizeAmount, formatAmount, branding, applyBranding } = ZeTagRequest;
 let profile = null;
+let connectedAddress = '';
 
 function cleanTag(value) {
   return String(value ?? '').trim().toLowerCase().replace(/^@/, '');
@@ -225,6 +226,14 @@ function showReceive() {
     <button class="text-action" id="back-to-request" type="button" hidden>← Back to payment request</button>
     <h2 id="receive-title">Request a payment</h2>
     <p class="help" id="receive-help">Create a link for a specific amount.</p>
+    <section id="saved-payment-page" class="saved-payment-page" hidden>
+      <div><strong>My payment page</strong><p id="saved-payment-tag"></p></div>
+      <div class="saved-page-actions">
+        <a class="text-action" id="saved-payment-open" target="_blank" rel="noopener">Open page</a>
+        <button class="text-action" id="saved-payment-copy" type="button">Copy link</button>
+      </div>
+      <input id="saved-payment-url" readonly hidden aria-label="Saved payment page link">
+    </section>
     <form>
       <label for="handle">Your ZeTag</label>
       <input id="handle" name="handle" placeholder="@yourname" maxlength="25" required>
@@ -285,6 +294,7 @@ function showReceive() {
 
   function setPersonal(enabled) {
     personal = enabled;
+    refreshSavedPage();
     form.hidden = false;
     result.hidden = true;
     get('#request-fields').hidden = enabled;
@@ -362,6 +372,10 @@ function showReceive() {
     if (personal) {
       const url = new URL('./pay/', location.href);
       url.hash = new URLSearchParams({ ...request, profile: '1' }).toString();
+      if (!ZeTagSaved.walletPage(connectedAddress, url)) {
+        status.textContent = 'This browser could not save the page. Copy the link to keep it.';
+      }
+      refreshSavedPage();
       form.hidden = true;
       result.hidden = false;
       get('#personal-recipient').textContent = name + ' · @' + tag;
@@ -396,7 +410,37 @@ function showReceive() {
     }
   });
   updatePreview();
+  refreshSavedPage();
 }
+
+function refreshSavedPage() {
+  const card = panel.querySelector('#saved-payment-page');
+  if (!card) return;
+  const url = ZeTagSaved.walletPage(connectedAddress);
+  card.hidden = !url;
+  if (!url) return;
+  const fields = new URLSearchParams(url.hash.slice(1));
+  card.querySelector('#saved-payment-tag').textContent = '@' + (fields.get('tag') ?? '');
+  card.querySelector('#saved-payment-open').href = url.href;
+  const field = card.querySelector('#saved-payment-url');
+  field.value = url.href;
+  field.hidden = true;
+  card.querySelector('#saved-payment-copy').onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(url.href);
+      status.textContent = 'Page link copied.';
+    } catch {
+      field.hidden = false;
+      field.focus();
+      field.select();
+    }
+  };
+}
+
+document.addEventListener('zetag:wallet-changed', event => {
+  connectedAddress = event.detail.address;
+  refreshSavedPage();
+});
 
 profile = readProfile();
 sendTab.onclick = () => showSend();

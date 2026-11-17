@@ -382,3 +382,42 @@ form:has(.logo-file:focus-visible) .logo-upload { outline:2px solid #c4aaff; out
 .live-brand .brand-pair { background:#1c1628; border-radius:12px; padding:10px; }
 .text-action { border:0; background:none; color:#dac8fb; padding:5px 0; text-decoration:underline; }
 .personal-result p { color:var(--muted); }
+
+.saved-payment-page {
+  display:flex; align-items:center; justify-content:space-between;
+  flex-wrap:wrap; gap:8px 14px; padding:12px 14px; margin:0 0 12px;
+  border:1px solid #513976; border-radius:12px; background:#211630;
+}
+.saved-payment-page p { margin:2px 0 0; color:var(--muted); font-size:13px; }
+.saved-page-actions { display:flex; gap:12px; align-items:center; font-size:13px; }
+.recent-checkout { text-decoration:none; }
+.payer-card { position:relative; }
+.checkout-close {
+  position:absolute; top:12px; right:12px;
+  display:inline-grid; place-items:center; min-width:34px; min-height:34px;
+  text-decoration:none;
+}
+
+.wallet-dialog-controls { display:flex; gap:7px; align-items:center; }
+.wallet-disconnect {
+  border:1px solid #5e477c; border-radius:10px; background:#171121;
+  padding:7px 9px; color:#ede2ff; font:inherit; font-size:12px;
+}
+.wallet-disconnect:hover { background:#2b1f3c; }
+#wallet-balance-status:empty,.wallet-overview-actions:empty { display:none; }
+.wallet-overview-actions { display:flex; flex-wrap:wrap; gap:8px 18px; justify-content:center; font-size:13px; }
+.wallet-connected .dialog-heading h2 { font-size:clamp(18px,4vw,27px); }
+.wallet-connected .wallet-network,.wallet-connected .wallet-status { display:inline-block; margin:12px 8px 5px 0; }
+.wallet-connected .wallet-balance-row {
+  border:1px solid #53406f; border-radius:15px; background:#201730; padding:17px; margin:12px 0;
+}
+.wallet-connected .wallet-balance-row > div { flex-direction:column; align-items:flex-start; gap:8px; }
+.wallet-connected .wallet-balance-row dt { color:#d8c7ee; font-size:14px; }
+.wallet-balance-row dd { display:flex; align-items:center; gap:8px; overflow-wrap:anywhere; }
+.wallet-connected #wallet-balance { font-size:clamp(20px,5vw,34px); font-weight:800; line-height:1.1; }
+.usdc-mark {
+  display:grid; place-items:center; flex:0 0 29px; height:29px; border-radius:50%;
+  background:#2968b9; color:white; font-weight:700;
+}
+.wallet-connected .wallet-stats { margin-top:16px; }
+.wallet-connected .wallet-stats dd { font-size:clamp(14px,3.1vw,19px); }
