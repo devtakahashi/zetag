@@ -52,6 +52,13 @@
       )?.address;
       return {
         connect: async () => solanaAccount((await standard.features['standard:connect'].connect()).accounts),
+        sign: async (message, address) => {
+          const account = standard.accounts.find(item => item.address === address);
+          const feature = standard.features['solana:signMessage'];
+          if (!account || !feature) throw new Error('This wallet does not support profile signatures.');
+          const [result] = await feature.signMessage({ account, message });
+          return result.signature;
+        },
         disconnect: () => standard.features['standard:disconnect']?.disconnect(),
         listen: change => standard.features['standard:events']?.on('change', event => {
           if (event.accounts) change(solanaAccount(event.accounts));
@@ -62,6 +69,11 @@
     if (!injected?.connect) return null;
     return {
       connect: async () => (await injected.connect())?.publicKey?.toString() ?? injected.publicKey?.toString(),
+      sign: async message => {
+        if (!injected.signMessage) throw new Error('This wallet does not support profile signatures.');
+        const result = await injected.signMessage(message);
+        return result.signature ?? result;
+      },
       disconnect: () => injected.disconnect?.(),
       listen: change => {
         const account = key => change(key?.toString());
@@ -137,6 +149,17 @@
     renderWallet();
     dialog.showModal();
   }
+
+  window.ZeTagWallet = Object.freeze({
+    get address() { return address; },
+    async signMessage(value) {
+      const signer = address;
+      if (!session || !signer) throw new Error('Connect your wallet first.');
+      const bytes = await session.wallet.sign(new TextEncoder().encode(value), signer);
+      if (signer !== address || bytes?.length !== 64) throw new Error('Wallet changed or returned an invalid signature.');
+      return btoa(String.fromCharCode(...bytes));
+    }
+  });
 
   get('wallet-button').onclick = () => openWallet();
   get('panel')?.addEventListener('zetag:payment-submit', event => {
