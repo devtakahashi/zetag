@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Claim a ZeTag and make it yours.">
+  <title>Profile | ZeTag</title>
+  <link rel="icon" type="image/png" href="../zetag-icon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="profile.css">
+  <script src="profile.js" defer></script>
+  <script src="../wallet.js" defer></script>
+</head>
+<body>
+<header>
+  <a class="brand" href="../"><span class="brand-mark" aria-hidden="true"></span>ZeTag</a>
+  <div class="wallet-tools">
+  <a class="wallet-button profile-entry" href="./" aria-current="page">Profile</a>
+  <button class="wallet-button history-button" id="history-button" type="button" aria-label="Transaction history" title="Transaction history" aria-haspopup="dialog"><span aria-hidden="true">↺</span></button>
+  <button class="wallet-button" id="wallet-button" type="button" aria-haspopup="dialog">
+    <span class="wallet-icon" aria-hidden="true"></span><span id="wallet-label">Connect Wallet</span>
+  </button>
+  </div>
+</header><dialog id="wallet-dialog" aria-labelledby="wallet-title">
+  <div class="dialog-heading"><h2 id="wallet-title">Connect Wallet</h2><form method="dialog"><button class="wallet-close" aria-label="Close">×</button></form></div>
+  <div class="wallet-watermark" aria-hidden="true">
+    <span class="solana-mark"><i></i><i></i><i></i></span><span class="zelle-watermark"><span class="zelle-initial">Z</span>elle</span>
+  </div>
+  <p class="wallet-prompt">Choose a wallet</p>
+  <p class="wallet-network">Network: Solana</p>
+  <div class="wallet-options" id="wallet-options" aria-label="Solana wallets"></div>
+  <button id="wallet-action" class="primary" type="button">Connect Wallet</button>
+  <a id="wallet-fallback" class="linkbutton" hidden>Get wallet</a>
+  <p id="wallet-status" class="wallet-status" role="status"></p>
+  <div id="wallet-overview">
+    <dl class="wallet-balance-row"><div><dt>Wallet balance <small>USDC</small></dt><dd id="wallet-balance">Not connected</dd></div></dl>
+    <dl class="wallet-stats">
+      <div><dt>Total received</dt><dd id="wallet-received">—</dd></div>
+      <div><dt>Total sent</dt><dd id="wallet-sent">—</dd></div>
+    </dl>
+    <p id="wallet-data-status" class="help" role="status"></p>
+  </div>
+</dialog>
+<dialog id="history-dialog" aria-labelledby="history-title">
+  <div class="dialog-heading"><h2 id="history-title">Transaction History</h2><form method="dialog"><button class="wallet-close" aria-label="Close">×</button></form></div>
+  <p id="history-status" class="help" role="status"></p>
+  <ul id="history-list" class="history-list"></ul>
+  <button id="history-action" class="secondary" type="button">Connect Wallet</button>
+</dialog>
+
+<main class="profile-layout">
+  <section class="card profile-card" aria-labelledby="profile-title">
+    <div class="profile-ident">
+      <div class="profile-avatar">
+        <img id="profile-avatar" alt="" hidden>
+        <span id="profile-initials" aria-hidden="true">@</span>
+      </div>
+      <h1 id="profile-title">Your ZeTag</h1>
+      <p id="profile-wallet" class="help" hidden></p>
+      <p id="profile-joined" class="help" hidden></p>
+      <div class="profile-actions">
+        <button class="primary" type="button" id="profile-connect">Connect wallet</button>
+        <button class="secondary" type="button" id="profile-copy" hidden>Copy profile link</button>
+        <a class="linkbutton primary" id="profile-pay" hidden>ZePay</a>
+      </div>
+    </div>
+    <p id="profile-status" class="help profile-status" role="status"></p>
+    <form id="profile-form" hidden>
+      <label for="profile-tag">Your @tag</label>
+      <input id="profile-tag" maxlength="25" placeholder="@yourtag" autocomplete="off" autocapitalize="none" spellcheck="false" required>
+      <fieldset>
+        <legend>Choose an avatar</legend>
+        <div class="profile-picker" id="avatar-options"></div>
+      </fieldset>
+      <div class="profile-upload">
+        <label for="avatar-upload" class="logo-upload">Upload your own photo</label>
+        <input type="file" id="avatar-upload" class="logo-file" accept="image/png,image/jpeg,image/webp">
+        <button type="button" id="avatar-reset" class="text-action">Use initials</button>
+      </div>
+      <p class="help">Your tag, avatar, and linked wallet address are public. Saving asks your wallet to sign a message.</p>
+      <button class="primary" id="profile-save" type="submit">Claim @tag</button>
+    </form>
+  </section>
+</main>
+<dialog id="receipt-dialog" class="request-card" aria-labelledby="receipt-title">
+  <form method="dialog" class="request-close"><button class="wallet-close" aria-label="Close">×</button></form>
+  <h2 id="receipt-title">Transaction receipt</h2>
+  <p class="request-amount" id="receipt-amount"></p>
+  <p id="receipt-date" class="request-person"></p>
+  <a class="linkbutton" id="receipt-link" target="_blank" rel="noopener">View on Solana Explorer</a>
+  <button type="button" id="receipt-copy" class="primary">Copy receipt</button>
+  <textarea id="receipt-text" readonly hidden aria-label="Receipt text"></textarea>
+  <p class="request-feedback" id="receipt-feedback" role="status"></p>
+</dialog>
+</body>
+</html>

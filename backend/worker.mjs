@@ -1,3 +1,5 @@
+import { profiles } from './profiles.mjs';
+
 const slugPattern = /^[a-z0-9][a-z0-9_.-]{2,100}$/;
 const json = (value, status = 200) => Response.json(value, {
   status,
@@ -42,6 +44,9 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
+      if (url.pathname === '/pay/_profiles' || url.pathname.startsWith('/pay/_profiles/')) {
+        return await profiles(request, env.DB, url);
+      }
       if (url.pathname === '/pay/_requests' && request.method === 'POST') return await create(request, env, url);
       if (request.method !== 'GET') return json({ error: 'Method not allowed' }, 405);
       if (url.pathname.startsWith('/pay/_requests/')) {

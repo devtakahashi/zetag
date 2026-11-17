@@ -1,0 +1,43 @@
+main.profile-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  place-items: start center;
+  padding-block: clamp(24px, 6vw, 76px);
+}
+.profile-card { width: min(100%, 520px); }
+.profile-ident { text-align: center; }
+.profile-ident h1 { margin: 14px 0 8px; font-size: clamp(28px, 7vw, 42px); overflow-wrap: anywhere; }
+.profile-ident .help { margin: 4px 0; }
+.profile-avatar {
+  display: grid; place-items: center; width: 96px; height: 96px;
+  margin: 0 auto; background: #3d2860;
+  border: 2px solid #7651a7; border-radius: 50%;
+  overflow: hidden; color: #f5e9ff; font-size: 31px; font-weight: 800;
+}
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.profile-entry { text-decoration: none; }
+.profile-actions { display: flex; gap: 8px; justify-content: center; }
+.profile-actions > * { width: auto; }
+.profile-status { text-align: center; overflow-wrap: anywhere; }
+.profile-status:empty { display: none; }
+#profile-form { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 8px; }
+#profile-form fieldset { margin: 16px 0 0; padding: 0; border: 0; min-width: 0; }
+#profile-form legend { margin-bottom: 8px; font-weight: 700; font-size: 13px; }
+.profile-picker { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.profile-picker button {
+  border: 2px solid transparent; padding: 2px; border-radius: 13px;
+  background: #261b39; aspect-ratio: 1; position: relative; overflow: hidden;
+}
+.profile-picker img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 9px; }
+.profile-picker button[aria-pressed="true"] { border-color: #c6a7ff; }
+.profile-picker button[aria-pressed="true"]::after {
+  content: '✓'; background: #321d59; color: #fff; border-radius: 50%;
+  position: absolute; bottom: 4px; right: 4px; width: 19px; line-height: 19px; font-size: 12px;
+}
+.profile-upload { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px 12px; }
+.profile-upload label { font-size: 12px; }
+.profile-upload button { font-size: 12px; }
+@media(max-width: 380px) {
+  .profile-entry { padding-inline: 6px; font-size: 12px; }
+  header:has(.profile-entry) { width: calc(100% - 24px); }
+}
