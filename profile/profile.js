@@ -10,7 +10,7 @@
   ];
   const publicTag = new URLSearchParams(location.search).get('tag');
   const viewingPublic = publicTag !== null;
-  const api = new URL('../pay/_profiles', location.href);
+  const { api: call, avatar: miniAvatar, badge, fmtTime, emojiPicker } = window.ZeTagUI;
   const editor = get('profile-editor');
   const ping = get('ping-dialog');
   const status = get('profile-status');
@@ -58,7 +58,7 @@
   function setDisabled() {
     save.disabled = saving || uploading;
     input.disabled = bio.disabled = upload.disabled = get('avatar-reset').disabled = saving;
-    for (const button of [...picker.children, ...get('profile-emojis').children]) button.disabled = saving;
+    for (const button of [...picker.children, ...get('profile-emojis').querySelectorAll('button')]) button.disabled = saving;
   }
 
   function setAvatar(value) {
@@ -85,47 +85,75 @@
     picker.append(button);
     button.onclick = () => setAvatar(key);
   }
-  for (const [emoji, name] of [['☕','coffee'],['✨','sparkles'],['💜','purple heart'],['🚀','rocket'],['🙌','raised hands'],['😊','smile']]) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.textContent = emoji;
-    button.setAttribute('aria-label', 'Add ' + name + ' emoji');
-    button.onclick = () => {
-      const start = bio.selectionStart;
-      const end = bio.selectionEnd;
-      if (bio.value.length - (end - start) + emoji.length > 120) return;
-      bio.setRangeText(emoji, start, end, 'end');
-      bio.focus();
-    };
-    get('profile-emojis').append(button);
-  }
+  emojiPicker(get('profile-emojis'), bio);
 
   input.oninput = preview;
   get('avatar-reset').onclick = () => setAvatar('');
-  get('profile-search').onsubmit = event => {
-    event.preventDefault();
-    const tag = cleanTag(get('profile-find-tag').value);
+  const finder = get('profile-find-tag');
+  const suggestions = get('tag-suggestions');
+  let searchTimer, searchRequest;
+  let activeSuggestion = -1;
+  function closeSuggestions() {
+    clearTimeout(searchTimer);
+    searchRequest?.abort();
+    activeSuggestion = -1;
+    suggestions.hidden = true;
+    finder.setAttribute('aria-expanded', 'false');
+    finder.removeAttribute('aria-activedescendant');
+  }
+
+  function find(tag) {
     if (!tags.test(tag)) { status.textContent = 'Enter a valid ZeTag.'; return; }
     location.href = './?tag=' + encodeURIComponent(tag);
-  };
-
-  async function call(path, payload) {
-    const response = await fetch(api.href + path, {
-      ...(payload ? {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-      } : {}),
-      signal: AbortSignal.timeout(12000),
-      cache: 'no-store'
-    });
-    if (!response.headers.get('Content-Type')?.includes('application/json')) throw new Error('Could not reach the profile service.');
-    const data = await response.json();
-    if (!response.ok) {
-      const error = new Error(data.error || 'Profile service unavailable.');
-      error.status = response.status;
-      throw error;
-    }
-    return data;
   }
+
+  finder.addEventListener('input', () => {
+    closeSuggestions();
+    const query = cleanTag(finder.value);
+    if (!/^[a-z0-9][a-z0-9_-]{1,23}$/.test(query)) return;
+    const controller = new AbortController();
+    searchRequest = controller;
+    searchTimer = setTimeout(async () => {
+      try {
+        const data = await call('/_search?q=' + encodeURIComponent(query), null,
+          AbortSignal.any([controller.signal, AbortSignal.timeout(7000)]));
+        if (controller.signal.aborted) return;
+        suggestions.replaceChildren(...data.matches.map((match, i) => {
+          const option = document.createElement('li');
+          option.id = 'tag-option-' + i;
+          option.setAttribute('role', 'option');
+          option.setAttribute('aria-selected', 'false');
+          option.dataset.tag = match.tag;
+          option.append(miniAvatar(match), '@' + match.tag);
+          option.addEventListener('mousedown', event => event.preventDefault());
+          option.onclick = () => find(match.tag);
+          return option;
+        }));
+        suggestions.hidden = !suggestions.children.length;
+        finder.setAttribute('aria-expanded', String(!suggestions.hidden));
+      } catch {}
+    }, 180);
+  });
+
+  finder.addEventListener('keydown', event => {
+    if (event.key === 'Escape') { closeSuggestions(); return; }
+    if (suggestions.hidden) return;
+    const size = suggestions.children.length;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      activeSuggestion = activeSuggestion < 0 ? (event.key === 'ArrowDown' ? 0 : size - 1)
+        : (activeSuggestion + (event.key === 'ArrowDown' ? 1 : -1) + size) % size;
+      for (const [i, option] of Array.from(suggestions.children).entries()) {
+        option.setAttribute('aria-selected', String(i === activeSuggestion));
+      }
+      finder.setAttribute('aria-activedescendant', suggestions.children[activeSuggestion].id);
+    }
+  });
+  finder.addEventListener('blur', closeSuggestions);
+  get('profile-search').onsubmit = event => {
+    event.preventDefault();
+    find(activeSuggestion >= 0 ? suggestions.children[activeSuggestion].dataset.tag : cleanTag(finder.value));
+  };
 
   const publicUrl = tag => new URL('./?tag=' + encodeURIComponent(tag), location.href).href;
   get('profile-copy').onclick = async () => {
@@ -153,11 +181,11 @@
     get('profile-edit').hidden = !mine;
     get('profile-activity').hidden = !mine;
     get('profile-public').hidden = !mine;
-    get('profile-pay').hidden = !viewingPublic || !profile;
-    get('profile-ping').hidden = !viewingPublic || !profile;
+    get('profile-pay').hidden = !profile;
+    get('profile-ping').hidden = !profile;
+    for (const id of ['profile-pay','profile-ping']) get(id).classList.toggle('owner-compact-action', mine);
     if (profile) {
       get('profile-public').href = publicUrl(profile.tag);
-      get('profile-pay').href = '../?tag=' + encodeURIComponent(profile.tag);
     }
     draw(get('profile-avatar'), get('profile-initials'), profile?.avatar ?? '', profile?.tag ?? '');
   }
@@ -218,7 +246,9 @@
       const challenge = await call('/login/challenge', { wallet: address });
       if (wallet.address !== address) return null;
       const signature = await wallet.signMessage(challenge.message);
-      return await call('/login', { nonce: challenge.nonce, signature });
+      const signed = await call('/login', { nonce: challenge.nonce, signature });
+      document.dispatchEvent(new Event('zetag:profile-session'));
+      return signed;
     } finally {
       signingIn = false;
     }
@@ -313,6 +343,7 @@
       const result = await call('', { nonce: challenge.nonce, signature });
       if (id !== generation) return;
       show(result.profile);
+      document.dispatchEvent(new Event('zetag:profile-session'));
       get('profile-claim').hidden = true;
       if (editor.open) editor.close();
       status.textContent = 'Profile saved.';
@@ -334,82 +365,159 @@
   };
 
   function stopPolling() { clearInterval(pingTimer); pingTimer = null; }
-  async function openPing(tag) {
-    stopPolling();
-    const id = ++pingGeneration;
-    peer = tag;
-    const list = get('ping-list');
-    list.replaceChildren();
-    get('ping-message').value = '';
-    pingForm.hidden = true;
-    get('ping-title').textContent = tag ? 'Ping @' + tag : 'Ping inbox';
-    get('ping-status').textContent = 'Loading…';
-    if (!ping.open) ping.showModal();
+
+  const pingList = get('ping-list');
+  let markedThrough = 0;
+  let lastRender = '';
+  let fetching = false;
+
+  async function refreshPing(id, tag) {
+    if (fetching || document.hidden) return;
+    fetching = true;
     try {
-      let info;
-      try {
-        const address = window.ZeTagWallet?.address;
-        if (address) {
-          const signed = await call('/_me');
-          if (signed.wallet !== address) throw Object.assign(new Error(), { status: 401 });
-        }
+      const data = await call('/_ping' + (tag ? '/' + tag : ''));
+      if (id !== pingGeneration || !ping.open) return;
+      showMessages(data, tag);
+      const bounds = pingList.getBoundingClientRect();
+      const visible = [...pingList.querySelectorAll('[data-incoming]')].findLast(row => {
+        const rect = row.getBoundingClientRect();
+        return rect.top < bounds.bottom && rect.bottom > bounds.top;
+      });
+      const through = Number(visible?.dataset.incoming ?? 0);
+      if (through > markedThrough && document.hasFocus()) {
+        await call('/_ping/' + tag + '/read', { through });
         if (id !== pingGeneration) return;
-        info = await call('/_ping' + (tag ? '/' + tag : ''));
+        markedThrough = through;
+        document.dispatchEvent(new Event('zetag:ping-updated'));
       }
-      catch (error) {
-        if (error.status !== 401) throw error;
-        if (!window.ZeTagWallet?.address) throw new Error('Connect your wallet, then open Ping again.');
-        const signed = await signIn();
-        if (!signed || id !== pingGeneration) return;
-        info = await call('/_ping' + (tag ? '/' + tag : ''));
-      }
-      if (id !== pingGeneration) return;
-      showMessages(info);
-      pingTimer = setInterval(async () => {
-        try {
-          const fresh = await call('/_ping' + (tag ? '/' + tag : ''));
-          if (id === pingGeneration) showMessages(fresh);
-        } catch {}
-      }, 6000);
-    } catch (error) {
-      if (id === pingGeneration) get('ping-status').textContent = error.message;
+    } finally {
+      if (id === pingGeneration) fetching = false;
     }
   }
 
-  function showMessages(data) {
-    const list = get('ping-list');
-    if (data.contacts) {
-      list.replaceChildren(...data.contacts.map(tag => {
+  async function openPing(tag) {
+    stopPolling();
+    const id = ++pingGeneration;
+    fetching = false;
+    markedThrough = 0;
+    lastRender = '';
+    peer = tag;
+    pingList.replaceChildren();
+    pingList.classList.toggle('ping-thread', Boolean(tag));
+    get('ping-message').value = '';
+    pingForm.hidden = true;
+    get('ping-back').hidden = !tag;
+    get('ping-peer-avatar').hidden = true;
+    get('ping-total').hidden = true;
+    get('ping-title').textContent = tag ? '@' + tag : 'Ping inbox';
+    get('ping-status').textContent = 'Loading…';
+    if (!ping.open) ping.showModal();
+    try {
+      try { await refreshPing(id, tag); }
+      catch (error) {
+        if (error.status !== 401 || id !== pingGeneration) throw error;
+        if (!window.ZeTagWallet?.address) throw new Error('Connect your wallet to open Ping.');
+        const signed = await signIn();
+        if (!signed || id !== pingGeneration) return;
+        await refreshPing(id, tag);
+      }
+      if (id !== pingGeneration) return;
+      pingTimer = setInterval(() => { void refreshPing(id, tag).catch(() => {}); }, 5000);
+    } catch (error) {
+      if (id !== pingGeneration) return;
+      get('ping-status').textContent = error.message;
+      if (!window.ZeTagWallet?.address && error.status !== 403) {
+        const connect = document.createElement('button');
+        connect.type = 'button';
+        connect.className = 'text-action';
+        connect.textContent = 'Connect wallet';
+        connect.onclick = () => { ping.close(); get('wallet-button').click(); };
+        get('ping-status').append(' ', connect);
+      }
+    }
+  }
+
+  function timestamp(value) {
+    const time = document.createElement('time');
+    if (value) time.dateTime = value;
+    time.textContent = fmtTime(value);
+    return time;
+  }
+
+  function showMessages(data, tag) {
+    if (!tag) {
+      badge(get('ping-total'), data.unread);
+      if (!Array.isArray(data.threads)) throw new Error('The Ping update is still deploying. Try again shortly.');
+      const key = JSON.stringify(data.threads);
+      if (key === lastRender) return;
+      lastRender = key;
+      pingList.replaceChildren(...data.threads.map(contact => {
         const li = document.createElement('li');
         const button = document.createElement('button');
+        const text = document.createElement('span');
+        const headline = document.createElement('span');
+        const name = document.createElement('strong');
+        const count = document.createElement('span');
+        const preview = document.createElement('small');
         button.type = 'button';
-        button.className = 'text-action';
-        button.textContent = '@' + tag;
-        button.onclick = () => openPing(tag);
+        button.className = 'ping-contact';
+        text.className = 'ping-contact-text';
+        headline.className = 'ping-contact-headline';
+        name.textContent = '@' + contact.tag;
+        count.className = 'count-badge';
+        badge(count, contact.unread);
+        headline.append(name, count);
+        preview.textContent = contact.preview;
+        text.append(headline, preview);
+        button.append(miniAvatar(contact, 'avatar-contact'), text, timestamp(contact.sentAt));
+        button.onclick = () => openPing(contact.tag);
         li.append(button);
         return li;
       }));
-      get('ping-status').textContent = data.contacts.length ? '' : 'No conversations yet. Find a ZeTag to send a ping.';
+      get('ping-status').textContent = data.threads.length ? '' : 'Find a ZeTag to send your first ping.';
       return;
     }
-    const next = data.messages.at(-1)?.id;
-    if (list.dataset.last !== String(next) || !list.children.length) {
-      list.replaceChildren(...data.messages.map(message => {
-        const li = document.createElement('li');
-        li.className = message.mine ? 'ping-mine' : 'ping-theirs';
-        li.textContent = message.body;
-        li.title = new Date(message.sentAt).toLocaleString();
-        return li;
-      }));
-      list.dataset.last = String(next);
-      list.scrollTop = list.scrollHeight;
-    }
+    const key = JSON.stringify(data);
+    if (key === lastRender) return;
+    lastRender = key;
+    get('ping-title').textContent = '@' + data.peer.tag;
+    get('ping-peer-avatar').replaceChildren(miniAvatar(data.peer, 'avatar-contact'));
+    get('ping-peer-avatar').hidden = false;
+    const nearBottom = pingList.scrollHeight - pingList.scrollTop - pingList.clientHeight < 60;
+    pingList.replaceChildren(...data.messages.map(message => {
+      const li = document.createElement('li');
+      li.className = 'ping-message ' + (message.mine ? 'is-outgoing' : 'is-incoming');
+      if (!message.mine) li.dataset.incoming = String(message.id);
+      const content = document.createElement('div');
+      const body = document.createElement('p');
+      const meta = document.createElement('span');
+      body.className = 'ping-bubble';
+      body.textContent = message.body;
+      meta.className = 'ping-message-meta';
+      meta.append(timestamp(message.sentAt));
+      if (message.mine) {
+        const tick = document.createElement('span');
+        tick.className = message.read ? 'ping-tick is-read' : 'ping-tick';
+        tick.textContent = message.read ? '✓✓' : '✓';
+        tick.setAttribute('role','img');
+        tick.setAttribute('aria-label', message.read ? 'Read' : 'Delivered');
+        meta.append(tick);
+      }
+      content.append(body, meta);
+      li.append(miniAvatar(message.mine ? data.owner : data.peer), content);
+      return li;
+    }));
+    if (nearBottom) pingList.scrollTop = pingList.scrollHeight;
     pingForm.hidden = false;
     get('ping-status').textContent = data.messages.length ? '' : 'Send the first ping.';
   }
 
-  get('profile-ping').onclick = () => { if (current) openPing(current.tag); };
+  get('profile-ping').onclick = () => { if (current) openPing(viewingPublic ? current.tag : null); };
   get('ping-inbox').onclick = () => openPing(null);
+  get('ping-back').onclick = () => openPing(null);
+  pingList.addEventListener('scrollend', () => {
+    if (peer && ping.open) void refreshPing(pingGeneration, peer).catch(() => {});
+  });
   ping.addEventListener('close', () => { ++pingGeneration; stopPolling(); });
   pingForm.onsubmit = async event => {
     event.preventDefault();
@@ -420,18 +528,79 @@
     const body = message.value.trim();
     if (!body) return;
     pingBusy = true;
+    message.disabled = true;
     get('ping-status').textContent = 'Sending…';
     try {
       await call('/_ping/' + tag, { body });
       if (id !== pingGeneration) return;
       message.value = '';
-      const data = await call('/_ping/' + tag);
-      if (id === pingGeneration) showMessages(data);
+      get('ping-status').textContent = '';
+      await refreshPing(id, tag);
     } catch (error) {
       if (id === pingGeneration) get('ping-status').textContent = error.message;
     } finally {
       pingBusy = false;
+      message.disabled = false;
+      if (id === pingGeneration) message.focus();
     }
+  };
+
+  const pay = get('zepay-dialog');
+  const payForm = get('zepay-form');
+  const payStatus = get('zepay-status');
+  const payAmount = get('zepay-amount');
+  const payNote = get('zepay-note');
+  const emojiToggle = get('zepay-emoji-toggle');
+  const payEmoji = get('zepay-emojis');
+  emojiPicker(payEmoji, payNote);
+  emojiToggle.onclick = () => {
+    payEmoji.hidden = !payEmoji.hidden;
+    emojiToggle.setAttribute('aria-expanded', String(!payEmoji.hidden));
+  };
+  function showBalance() {
+    const wallet = window.ZeTagWallet;
+    get('zepay-available').textContent = !wallet?.address ? 'Connect a wallet to see your available USDC.'
+      : wallet.balanceText ? 'Available ' + wallet.balanceText : 'Available balance could not be verified.';
+  }
+  document.addEventListener('zetag:wallet-balance', showBalance);
+  get('profile-pay').onclick = () => {
+    if (!viewingPublic) { finder.focus(); return; }
+    if (!current) return;
+    payForm.reset();
+    payEmoji.hidden = true;
+    emojiToggle.setAttribute('aria-expanded', 'false');
+    get('zepay-avatar').replaceChildren(miniAvatar(current, 'avatar-contact'));
+    get('zepay-recipient').textContent = '@' + current.tag;
+    payStatus.textContent = '';
+    showBalance();
+    get('zepay-back').click();
+    pay.showModal();
+  };
+  get('zepay-back').onclick = () => {
+    get('zepay-review').hidden = true;
+    payForm.hidden = false;
+    if (pay.open) payAmount.focus();
+  };
+  payForm.onsubmit = event => {
+    event.preventDefault();
+    const amount = payAmount.value.trim();
+    if (!/^\d+(?:\.\d{1,6})?$/.test(amount) || !/[1-9]/.test(amount)) {
+      payStatus.textContent = 'Enter a USDC amount greater than zero.';
+      return;
+    }
+    const [whole, decimals = ''] = amount.split('.');
+    const units = BigInt(whole + decimals.padEnd(6, '0'));
+    const balance = window.ZeTagWallet?.balance;
+    if (balance !== null && balance !== undefined && units > balance) {
+      payStatus.textContent = 'This amount exceeds your available USDC balance.';
+      return;
+    }
+    const purpose = new FormData(payForm).get('purpose');
+    const note = payNote.value.trim();
+    get('zepay-summary').textContent = amount + ' USDC to @' + current.tag + (purpose ? ' · ' + purpose : '') + (note ? ' · ' + note : '');
+    payForm.hidden = true;
+    get('zepay-review').hidden = false;
+    get('zepay-back').focus();
   };
 
   document.addEventListener('zetag:wallet-changed', event => {
@@ -451,4 +620,7 @@
     promptOwner('Connect your wallet to open your profile.', false);
   });
   load();
+  if (new URLSearchParams(location.search).get('ping') === 'inbox') {
+    window.addEventListener('load', () => { void openPing(null); }, { once: true });
+  }
 })();

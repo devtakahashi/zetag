@@ -1,0 +1,152 @@
+:root {
+  --ping-read: #f03a8d;
+  --ping-badge: #991651;
+  --ping-time: #bdaccd;
+  --surface-raised: #241a34;
+  --surface-line: #544068;
+}
+
+.zetag-nav { position: relative; }
+.zetag-nav .nav-icon, .send-ping { display: inline-grid; place-items: center; padding: 0; width: 42px; height: 42px; }
+.nav-icon svg, .send-ping svg {
+  width: 19px; height: 19px; fill: none; stroke: currentColor;
+  stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
+}
+.zetag-nav #notifications-button { position: relative; }
+.count-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: none; min-width: 21px; height: 19px; padding: 0 5px; border-radius: 10px;
+  font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums;
+  color: white; background: var(--ping-badge); white-space: nowrap;
+}
+.nav-count { position: absolute; top: -5px; right: -5px; border: 1px solid #e6609a; }
+.profile-menu, .owner-compact-action, #recent-checkout { display: none; }
+.profile-menu summary { list-style: none; }
+.profile-menu summary::-webkit-details-marker { display: none; }
+.profile-menu-panel {
+  position: absolute; top: calc(100% + 9px); right: 0; z-index: 6;
+  display: grid; gap: 3px; padding: 6px; width: 157px;
+  border: 1px solid var(--surface-line); border-radius: 12px;
+  background: #171122; box-shadow: 0 12px 35px #0008;
+}
+.profile-menu-panel a, .profile-menu-panel button {
+  display: block; text-align: left; border: 0; background: transparent; border-radius: 7px;
+  color: #f1eafa; text-decoration: none; font: inherit; font-size: 14px; padding: 9px 10px;
+}
+.profile-menu-panel :is(a, button):hover { background: var(--surface-raised); }
+.notification-list { display: grid; gap: 8px; margin-block: 18px 5px; }
+.notification-row {
+  display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; text-align: left;
+  gap: 11px; padding: 10px; border: 1px solid var(--surface-line);
+  border-radius: 12px; background: #1d152b; color: inherit;
+}
+.notification-row:hover, .ping-contact:hover { background: #2b1d3b; }
+.notification-symbol { display: grid; place-items: center; border-radius: 50%; width: 34px; height: 34px; background: #573399; color: white; }
+.notification-usdc { background: #2369bb; }
+.notification-row strong, .notification-row small { display: block; }
+.notification-row small { color: var(--ping-time); margin-top: 2px; }
+#notifications-recent { display: inline-block; margin-top: 10px; }
+
+.profile-search { position: relative; }
+#tag-suggestions {
+  position: absolute; z-index: 4; inset: calc(100% + 5px) 0 auto;
+  padding: 5px; margin: 0; list-style: none;
+  border: 1px solid var(--surface-line); border-radius: 14px;
+  background: #171021; box-shadow: 0 15px 30px #0007;
+}
+#tag-suggestions li {
+  display: flex; align-items: center; gap: 9px; padding: 6px 10px;
+  border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 700;
+}
+#tag-suggestions li:hover, #tag-suggestions li[aria-selected="true"] { background: #322149; }
+.mini-avatar {
+  display: inline-grid; place-items: center; width: 31px; height: 31px; flex: none;
+  overflow: hidden; border: 1px solid #7953a0; border-radius: 50%;
+  background: #3a275b; color: #f3e5ff; font-size: 11px; font-weight: 800;
+}
+.mini-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.mini-avatar.avatar-contact { width: 43px; height: 43px; }
+.wallet-identity { display: flex; align-items: center; gap: 10px; margin-block: 12px 4px; }
+.wallet-identity strong { font-size: 17px; }
+
+#ping-dialog, #zepay-dialog, #notifications-dialog, #profile-editor {
+  border-color: var(--surface-line); background: linear-gradient(155deg, #1d142b, #13101d 60%);
+}
+#ping-dialog { width: min(484px, calc(100% - 24px)); }
+.ping-heading { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.ping-heading h2 { min-width: 0; overflow-wrap: anywhere; font-size: clamp(20px, 5vw, 25px); }
+#ping-peer-avatar { display: inline-flex; }
+.ping-list { margin: 14px 0; gap: 8px; padding: 1px; }
+.ping-list.ping-thread { gap: 12px; }
+.ping-contact {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center;
+  gap: 10px; width: 100%; text-align: left; padding: 9px;
+  border: 1px solid var(--surface-line); border-radius: 13px; background: #21172e; color: inherit;
+}
+.ping-contact-text { min-width: 0; }
+.ping-contact-text small { display: block; margin-top: 2px; color: var(--ping-time); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ping-contact-headline { display: flex; align-items: center; gap: 6px; }
+.ping-contact-headline strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ping-contact time { align-self: start; white-space: nowrap; font-size: 11px; color: var(--ping-time); }
+.ping-message { display: flex; align-items: flex-start; justify-self: start; gap: 7px; max-width: 88%; }
+.ping-message.is-outgoing { justify-self: end; flex-direction: row-reverse; }
+.ping-message > div { min-width: 0; }
+.ping-bubble {
+  color: #f4ecfc; margin: 0; padding: 8px 11px; background: #30223f;
+  border-radius: 4px 13px 13px; font-size: 14px; overflow-wrap: anywhere;
+}
+.is-outgoing .ping-bubble { background: #462366; border-radius: 13px 4px 13px 13px; }
+.ping-message-meta { display: flex; align-items: center; gap: 5px; margin: 3px 3px 0; color: var(--ping-time); font-size: 11px; }
+.is-outgoing .ping-message-meta { justify-content: flex-end; }
+.ping-tick { color: inherit; font-size: 13px; font-weight: 700; }
+.ping-tick.is-read { color: var(--ping-read); letter-spacing: -3px; margin-right: 3px; }
+#ping-form .send-ping { width: 46px; height: auto; min-height: 42px; }
+#ping-status:empty { display: none; }
+
+.profile-emojis {
+  display: block; margin-top: 8px; padding: 7px;
+  border: 1px solid var(--surface-line); border-radius: 13px; background: #171021;
+}
+.emoji-tabs { display: flex; gap: 4px; justify-content: center; }
+.emoji-tabs button { flex: 1; padding: 5px 3px; background: transparent; color: #ccbce0; min-height: 32px; }
+.emoji-tabs button[aria-pressed="true"] { color: white; background: #522a82; border-color: #7c55a7; }
+.emoji-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; margin-top: 6px; }
+.emoji-grid button {
+  padding: 3px; display: grid; place-items: center; min-height: 38px;
+  font-size: 22px; background: #23182f; border-color: #3c2a4f;
+}
+.emoji-grid button:hover { border-color: #9772c5; background: #35234a; }
+.emoji-grid img { width: 27px; height: 27px; object-fit: contain; }
+
+.zepay-recipient { display: flex; align-items: center; gap: 11px; margin: 13px 0 17px; }
+.zepay-recipient :is(small,strong) { display: block; }
+.zepay-recipient small, .zepay-amount span { color: var(--ping-time); }
+.zepay-recipient strong { font-size: 19px; overflow-wrap: anywhere; }
+.zepay-amount, .zepay-note { display: flex; align-items: center; gap: 9px; }
+.zepay-amount input, .zepay-note input { flex: 1; min-width: 0; margin: 0; }
+.zepay-amount input { font-size: 22px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.zepay-purpose { display: flex; gap: 6px; margin: 12px 0; padding: 0; border: 0; }
+.zepay-purpose legend { font-size: 13px; font-weight: 700; }
+.zepay-purpose label { position: relative; cursor: pointer; margin: 6px 0 0; }
+.zepay-purpose input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.zepay-purpose span {
+  display: inline-block; padding: 7px 13px; border: 1px solid var(--surface-line);
+  border-radius: 9px; color: #eaddf7;
+}
+.zepay-purpose input:checked + span { color: white; background: #532b84; }
+.zepay-purpose input:focus-visible + span { outline: 2px solid #b386fc; outline-offset: 2px; }
+#zepay-summary { overflow-wrap: anywhere; }
+
+@media (max-width: 1023px) {
+  .zetag-nav .profile-link, .zetag-nav #wallet-button { display: none; }
+  .profile-menu { display: block; }
+  .profile-actions .owner-compact-action { display: inline-grid; place-items: center; }
+  .profile-actions { flex-wrap: wrap; }
+  .profile-actions #profile-public { flex: 0 0 100%; order: 1; margin-top: 4px; }
+  main.profile-layout { align-content: center; align-items: center; min-height: min(75svh, 670px); }
+}
+@media (max-width: 380px) {
+  .ping-contact { gap: 7px; padding: 7px; }
+  .ping-contact .mini-avatar { width: 35px; height: 35px; }
+  #ping-dialog, #zepay-dialog, #profile-editor { padding: 16px; }
+}

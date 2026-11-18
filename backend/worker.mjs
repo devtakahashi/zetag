@@ -45,7 +45,7 @@ export default {
     const url = new URL(request.url);
     try {
       if (url.pathname === '/pay/_profiles' || url.pathname.startsWith('/pay/_profiles/')) {
-        return await profiles(request, env.DB, url);
+        return await profiles(request, env.DB, url, env.SOLANA_RPC_URL);
       }
       if (url.pathname === '/pay/_requests' && request.method === 'POST') return await create(request, env, url);
       if (request.method !== 'GET') return json({ error: 'Method not allowed' }, 405);

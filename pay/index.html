@@ -10,18 +10,35 @@
   <script src="../request-data.js" defer></script>
   <script src="../saved-pages.js" defer></script>
   <script src="../pay.js" defer></script>
-  <script src="../wallet.js" defer></script>
+  <script src="../profile/ui.js?v=ping2" defer></script>
+  <script src="../wallet.js?v=ping2" defer></script>
+<link rel="stylesheet" href="../profile/profile.css">
+<link rel="stylesheet" href="../profile/premium.css?v=ping2">
 </head>
 <body>
 <header>
   <a class="brand" href="../"><span class="brand-mark" aria-hidden="true"></span>ZeTag</a>
-  <div class="wallet-tools">
-  <button class="wallet-button history-button" id="history-button" type="button" aria-label="Transaction history" title="Transaction history" aria-haspopup="dialog"><span aria-hidden="true">↺</span></button>
+  <div class="wallet-tools zetag-nav">
+    <button class="wallet-button nav-icon" id="notifications-button" type="button" aria-label="Notifications" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-11 12a2 2 0 0 0 4 0"/></svg><span class="count-badge nav-count" hidden></span></button>
+    <a class="wallet-button nav-icon profile-link" href="../profile/" aria-label="Profile" title="Profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2z"/></svg></a>
+    <details class="profile-menu"><summary class="wallet-button nav-icon" aria-label="Profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2z"/></svg></summary>
+      <div class="profile-menu-panel"><a href="../profile/">My profile</a><button type="button" id="mobile-wallet">Connect wallet</button></div>
+    </details>
+    <button type="button" id="history-button" hidden>Transaction history</button>
   <button class="wallet-button" id="wallet-button" type="button" aria-haspopup="dialog">
     <span class="wallet-icon" aria-hidden="true"></span><span id="wallet-label">Connect Wallet</span>
   </button>
   </div>
 </header>
+<dialog id="notifications-dialog" class="profile-dialog" aria-labelledby="notifications-title">
+  <div class="dialog-heading"><h2 id="notifications-title">Notifications</h2><form method="dialog"><button class="wallet-close" aria-label="Close notifications">×</button></form></div>
+  <div class="notification-list">
+    <button class="notification-row" id="notifications-ping" type="button"><span class="notification-symbol" aria-hidden="true">•••</span><span><strong>Pings</strong><small id="notifications-ping-preview">Open inbox</small></span><span class="count-badge" id="notifications-ping-count" hidden></span></button>
+    <button class="notification-row" id="notifications-transactions" type="button"><span class="notification-symbol notification-usdc" aria-hidden="true">$</span><span><strong>Transactions</strong><small id="notifications-transaction-preview">View USDC activity</small></span><span class="count-badge" id="notifications-transaction-count" hidden></span></button>
+  </div>
+  <a id="notifications-recent" class="text-action" hidden>Reopen payment request</a>
+</dialog>
+
 <dialog id="wallet-dialog" aria-labelledby="wallet-title">
   <div class="dialog-heading"><h2 id="wallet-title">Connect Wallet</h2><div class="wallet-dialog-controls">
   <button class="wallet-disconnect" id="wallet-disconnect" type="button" hidden>Disconnect</button>
@@ -31,6 +48,7 @@
     <span class="solana-mark"><i></i><i></i><i></i></span><span class="zelle-watermark"><span class="zelle-initial">Z</span>elle</span>
   </div>
   <p class="wallet-prompt" id="wallet-prompt">Choose a wallet</p>
+  <div id="wallet-identity" class="wallet-identity" hidden></div>
   <p class="wallet-network">Network: Solana</p>
   <div class="wallet-options" id="wallet-options" aria-label="Solana wallets"></div>
   <button id="wallet-action" class="primary" type="button">Connect Wallet</button>

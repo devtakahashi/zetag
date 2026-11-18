@@ -122,43 +122,123 @@ async function useChallenge(db, input) {
 
 async function ping(request, db, path, input) {
   const wallet = await sessionWallet(request, db);
-  if (!wallet) return json({ error: 'Sign in with your wallet to use Ping.' }, 401);
-  const owner = await db.prepare('SELECT tag FROM profiles WHERE wallet = ?').bind(wallet).first();
+  const expected = request.headers.get('X-ZeTag-Wallet');
+  if (!wallet || (expected && wallet !== expected)) {
+    return json({ error: 'Sign in with your wallet to use Ping.' }, 401);
+  }
+  const owner = await db.prepare('SELECT tag, avatar FROM profiles WHERE wallet = ?').bind(wallet).first();
   if (!owner) return json({ error: 'Claim a ZeTag to use Ping.' }, 403);
   if (path === '/_ping' && request.method === 'GET') {
     const rows = await db.prepare(`
-      SELECT p.tag, MAX(m.id) AS latest
-      FROM ping_messages m JOIN profiles p
-        ON p.wallet = CASE WHEN m.sender = ? THEN m.recipient ELSE m.sender END
-      WHERE m.sender = ? OR m.recipient = ?
-      GROUP BY p.tag ORDER BY latest DESC LIMIT 30
-    `).bind(wallet, wallet, wallet).all();
-    return json({ contacts: rows.results.map(row => row.tag) });
+      WITH threads AS (
+        SELECT CASE WHEN sender = ?1 THEN recipient ELSE sender END AS peer, MAX(id) AS latest
+        FROM ping_messages WHERE sender = ?1 OR recipient = ?1 GROUP BY peer
+      )
+      SELECT p.tag, p.avatar, m.body AS preview, m.sent_at AS sentAt,
+        (SELECT COUNT(*) FROM ping_messages
+         WHERE recipient = ?1 AND sender = threads.peer AND id > COALESCE(r.last_id, 0)) AS unread
+      FROM threads JOIN profiles p ON p.wallet = threads.peer JOIN ping_messages m ON m.id = threads.latest
+      LEFT JOIN ping_read_positions r ON r.reader = ?1 AND r.peer = threads.peer
+      ORDER BY threads.latest DESC LIMIT 50
+    `).bind(wallet).all();
+    const count = await db.prepare(`
+      SELECT COUNT(*) AS unread FROM ping_messages m
+      LEFT JOIN ping_read_positions r ON r.reader = m.recipient AND r.peer = m.sender
+      WHERE m.recipient = ? AND m.id > COALESCE(r.last_id, 0)
+    `).bind(wallet).first();
+    return json({ contacts: rows.results.map(row => row.tag), threads: rows.results, unread: count.unread });
   }
-  const tag = path.slice('/_ping/'.length);
-  if (!tags.test(tag)) return json({ error: 'Invalid recipient tag.' }, 400);
-  const peer = await db.prepare('SELECT wallet FROM profiles WHERE tag = ?').bind(tag).first();
+  const [, , tag, action = '', extra] = path.split('/');
+  if (extra !== undefined || !tags.test(tag) || (action && action !== 'read')) {
+    return json({ error: 'Invalid recipient tag.' }, 400);
+  }
+  const peer = await db.prepare(`
+    SELECT wallet, tag, avatar FROM profiles WHERE tag = ?1 OR wallet = (
+      SELECT wallet FROM profile_tag_aliases WHERE tag = ?1
+    )
+  `).bind(tag).first();
   if (!peer || peer.wallet === wallet) return json({ error: 'Choose another ZeTag.' }, 404);
-  if (request.method === 'GET') {
+  if (request.method === 'GET' && !action) {
     const rows = await db.prepare(`
-      SELECT id, sender, body, sent_at FROM ping_messages
-      WHERE (sender = ? AND recipient = ?) OR (sender = ? AND recipient = ?)
+      SELECT id, sender, body, sent_at,
+        id <= COALESCE((SELECT last_id FROM ping_read_positions WHERE reader = ?2 AND peer = ?1), 0) AS seen
+      FROM ping_messages
+      WHERE (sender = ?1 AND recipient = ?2) OR (sender = ?2 AND recipient = ?1)
       ORDER BY id DESC LIMIT 50
-    `).bind(wallet, peer.wallet, peer.wallet, wallet).all();
-    return json({ messages: rows.results.reverse().map(row => ({
-      id: row.id, mine: row.sender === wallet, body: row.body, sentAt: row.sent_at
+    `).bind(wallet, peer.wallet).all();
+    return json({ owner, peer: { tag: peer.tag, avatar: peer.avatar }, messages: rows.results.reverse().map(row => ({
+      id: row.id, mine: row.sender === wallet, body: row.body, sentAt: row.sent_at,
+      read: row.sender === wallet && Boolean(row.seen)
     })) });
   }
-  const body = input?.body?.trim?.();
-  if (typeof body !== 'string' || !body || body.length > 1000) return json({ error: 'Enter a message up to 1,000 characters.' }, 400);
+  if (request.method !== 'POST') return json({ error: 'Method not allowed.' }, 405);
+  if (action === 'read') {
+    const through = input?.through;
+    if (!Number.isSafeInteger(through) || through <= 0) return json({ error: 'Invalid message.' }, 400);
+    await db.prepare(`
+      INSERT INTO ping_read_positions (reader, peer, last_id)
+      SELECT recipient, sender, id FROM ping_messages WHERE recipient = ? AND sender = ? AND id = ?
+      ON CONFLICT(reader, peer) DO UPDATE SET last_id = MAX(last_id, excluded.last_id)
+    `).bind(wallet, peer.wallet, through).run();
+    return json({ acknowledged: true });
+  }
+  const body = typeof input?.body === 'string' ? input.body.trim() : '';
+  if (!body || body.length > 1000) return json({ error: 'Enter a message up to 1,000 characters.' }, 400);
   await db.prepare('INSERT INTO ping_messages (sender, recipient, body, sent_at) VALUES (?, ?, ?, ?)')
     .bind(wallet, peer.wallet, body, new Date().toISOString()).run();
   return json({ sent: true }, 201);
 }
 
-export async function profiles(request, db, url) {
+async function search(db, url) {
+  const query = (url.searchParams.get('q') ?? '').trim().toLowerCase().replace(/^@/, '');
+  if (!/^[a-z0-9][a-z0-9_-]{1,23}$/.test(query)) return json({ matches: [] });
+  const rows = await db.prepare(`
+    SELECT tag, avatar FROM profiles
+    WHERE tag = ?1 OR substr(tag, 1, length(?1)) = ?1 OR (length(?1) >= 3 AND instr(tag, ?1) > 0)
+    ORDER BY CASE WHEN tag = ?1 THEN 0 WHEN substr(tag, 1, length(?1)) = ?1 THEN 1 ELSE 2 END,
+      length(tag), tag
+    LIMIT 6
+  `).bind(query).all();
+  return json({ matches: rows.results });
+}
+
+async function usdcAccounts(request, db, rpcUrl) {
+  const owner = await sessionWallet(request, db);
+  if (!owner || owner !== request.headers.get('X-ZeTag-Wallet')) {
+    return json({ error: 'Wallet sign-in required.' }, 401);
+  }
+  const endpoint = rpcUrl || 'https://api.mainnet-beta.solana.com';
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      redirect: 'error',
+      headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(5500),
+      body: JSON.stringify({
+        jsonrpc: '2.0', id: 1, method: 'getTokenAccountsByOwner',
+        params: [owner, { mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' },
+          { encoding: 'jsonParsed', commitment: 'confirmed' }]
+      })
+    });
+    if (!response.ok) throw new Error('Solana RPC unavailable');
+    const result = await response.json();
+    if (result.error || !Array.isArray(result.result?.value)) throw new Error('Unexpected Solana RPC response');
+    const accounts = result.result.value.map(item => {
+      const amount = item.account.data.parsed.info.tokenAmount.amount;
+      if (!/^[0-9]+$/.test(amount) || !walletKey(item.pubkey)) throw new Error('Unexpected token account');
+      return { address: item.pubkey, amount };
+    });
+    return json({ accounts });
+  } catch {
+    return json({ error: 'USDC balance is unavailable.' }, 503);
+  }
+}
+
+export async function profiles(request, db, url, rpcUrl) {
   const path = url.pathname.slice('/pay/_profiles'.length);
   if (request.method === 'GET') {
+    if (path === '/_balance') return usdcAccounts(request, db, rpcUrl);
+    if (path === '/_search') return search(db, url);
     if (path === '/_me') {
       const wallet = await sessionWallet(request, db);
       if (!wallet) return json({ error: 'Wallet sign-in required.' }, 401);

@@ -24,6 +24,7 @@
   let address = '';
   let request;
   let balanceRequest;
+  let balanceUnits = null;
   let busy = false;
   let pendingForm = null;
   let restoring = false;
@@ -159,6 +160,8 @@
     if (next === address) return;
     request?.abort();
     address = next;
+    const identity = get('wallet-identity');
+    if (identity) { identity.hidden = true; identity.replaceChildren(); }
     if (!address) {
       session?.unsubscribe?.();
       session = null;
@@ -194,6 +197,8 @@
 
   window.ZeTagWallet = Object.freeze({
     get address() { return address; },
+    get balance() { return balanceUnits; },
+    get balanceText() { return balanceUnits === null ? '' : format(balanceUnits); },
     async signMessage(value) {
       const signer = address;
       if (!session || !signer) throw new Error('Connect your wallet first.');
@@ -211,6 +216,20 @@
     if (!dialog.open) openWallet();
   });
   dialog.addEventListener('close', () => { pendingForm = null; });
+  document.addEventListener('zetag:wallet-profile', ({ detail }) => {
+    const identity = get('wallet-identity');
+    if (!identity || detail.owner !== address || !window.ZeTagUI) return;
+    const profile = detail.profile;
+    identity.hidden = !profile;
+    if (profile) {
+      const tag = document.createElement('strong');
+      tag.textContent = '@' + profile.tag;
+      identity.replaceChildren(window.ZeTagUI.avatar(profile, 'avatar-contact'), tag);
+    } else identity.replaceChildren();
+  });
+  document.addEventListener('zetag:profile-session', () => {
+    if (address && balanceUnits === null) void refresh();
+  });
   get('history-button').onclick = () => history.showModal();
   historyAction.onclick = () => {
     if (address) { refresh(); return; }
@@ -292,28 +311,33 @@
   async function loadBalance(owner, controller) {
     const status = get('wallet-balance-status');
     const balance = get('wallet-balance');
-    const endpoints = [...new Set([rpcUrl, 'https://solana-rpc.publicnode.com'])];
     balance.textContent = 'Loading…';
     status.textContent = '';
-    for (const endpoint of endpoints) {
+    const providers = [...new Set([rpcUrl, 'https://solana-rpc.publicnode.com'])].map(endpoint => async signal => {
+      const result = await rpc('getTokenAccountsByOwner', [owner, { mint: usdc }, {
+        encoding: 'jsonParsed', commitment: 'confirmed'
+      }], signal, endpoint);
+      return result.value.map(item => ({ address: item.pubkey, amount: item.account.data.parsed.info.tokenAmount.amount }));
+    });
+    if (window.ZeTagUI) providers.push(async signal => (await window.ZeTagUI.api('/_balance', null, signal)).accounts);
+    try {
+      const accounts = await Promise.any(providers.map(async provider => {
+        const result = await provider(AbortSignal.any([controller.signal, AbortSignal.timeout(6500)]));
+        if (!Array.isArray(result) || result.some(account => typeof account.address !== 'string' ||
+          typeof account.amount !== 'string' || !/^[0-9]+$/.test(account.amount))) throw new Error('Invalid balance');
+        return result;
+      }));
       if (controller.signal.aborted) return null;
-      try {
-        const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(6500)]);
-        const result = await rpc('getTokenAccountsByOwner', [owner, { mint: usdc }, {
-          encoding: 'jsonParsed', commitment: 'confirmed'
-        }], signal, endpoint);
-        const total = result.value.reduce((sum, item) =>
-          sum + BigInt(item.account.data.parsed.info.tokenAmount.amount), 0n);
-        if (controller.signal.aborted) return null;
-        balance.textContent = format(total);
-        return new Set(result.value.map(item => item.pubkey));
-      } catch {
-        if (controller.signal.aborted) return null;
-      }
+      balanceUnits = accounts.reduce((sum, item) => sum + BigInt(item.amount), 0n);
+      balance.textContent = format(balanceUnits);
+      document.dispatchEvent(new Event('zetag:wallet-balance'));
+      return new Set(accounts.map(item => item.address));
+    } catch {
+      if (controller.signal.aborted) return null;
+      balance.textContent = 'Unavailable';
+      status.textContent = 'Could not load the USDC balance. Refresh to try again.';
+      return null;
     }
-    balance.textContent = 'Unavailable';
-    status.textContent = 'Could not read the Solana balance. Use Refresh wallet data to retry.';
-    return null;
   }
 
   function format(amount) {
@@ -367,6 +391,8 @@
     request = controller;
     const signal = controller.signal;
     const owner = address;
+    balanceUnits = null;
+    document.dispatchEvent(new Event('zetag:wallet-balance'));
     const status = get('wallet-data-status');
     const historyStatus = get('history-status');
     const list = get('history-list');
@@ -397,6 +423,7 @@
       let sent = 0n;
       let received = 0n;
       let missing = false;
+      const transactions = [];
       for (let i = 0; i < recent.length; i += 4) {
         const chunk = recent.slice(i, i + 4);
         const results = await Promise.allSettled(chunk.map(item =>
@@ -425,6 +452,7 @@
           link.append(label, (inbound ? '+' : '−') + format(amount));
           row.append(link);
           if (item.confirmationStatus === 'finalized' || item.confirmationStatus === 'confirmed') {
+            transactions.push({ signature: item.signature, amount: format(amount), inbound });
             const receiptButton = document.createElement('button');
             receiptButton.type = 'button';
             receiptButton.className = 'receipt-button';
@@ -436,6 +464,7 @@
         });
       }
       if (request !== controller) return;
+      document.dispatchEvent(new CustomEvent('zetag:wallet-activity', { detail: { owner, transactions } }));
       const scope = (accounts ? '' : 'Wallet address only. ') + 'Totals cover the latest ' + recent.length + ' candidate transactions from the wallet and up to four current USDC accounts.';
       status.textContent = missing ? 'Some transaction data was unavailable. Refresh to retry.' : scope;
       if (!missing) {
@@ -457,4 +486,7 @@
   window.addEventListener('load', restoreWallet, { once: true });
   void restoreWallet();
   refresh();
+  setInterval(() => {
+    if (address && !document.hidden && !dialog.open && !history.open) void refresh();
+  }, 90000);
 })();

@@ -8,20 +8,36 @@
   <link rel="icon" type="image/png" href="../zetag-icon.png">
   <link rel="stylesheet" href="../style.css">
   <link rel="stylesheet" href="profile.css">
-  <script src="profile.js" defer></script>
-  <script src="../wallet.js" defer></script>
+  <script src="../profile/ui.js?v=ping2" defer></script>
+  <script src="profile.js?v=ping2" defer></script>
+  <script src="../wallet.js?v=ping2" defer></script>
+<link rel="stylesheet" href="../profile/profile.css">
+<link rel="stylesheet" href="../profile/premium.css?v=ping2">
 </head>
 <body>
 <header>
   <a class="brand" href="../"><span class="brand-mark" aria-hidden="true"></span>ZeTag</a>
-  <div class="wallet-tools">
-  <a class="wallet-button profile-entry" href="./" aria-current="page">Profile</a>
-  <button class="wallet-button history-button" id="history-button" type="button" aria-label="Transaction history" title="Transaction history" aria-haspopup="dialog"><span aria-hidden="true">↺</span></button>
+  <div class="wallet-tools zetag-nav">
+    <button class="wallet-button nav-icon" id="notifications-button" type="button" aria-label="Notifications" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-11 12a2 2 0 0 0 4 0"/></svg><span class="count-badge nav-count" hidden></span></button>
+    <a class="wallet-button nav-icon profile-link" href="../profile/" aria-label="Profile" title="Profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2z"/></svg></a>
+    <details class="profile-menu"><summary class="wallet-button nav-icon" aria-label="Profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2z"/></svg></summary>
+      <div class="profile-menu-panel"><a href="../profile/">My profile</a><button type="button" id="mobile-wallet">Connect wallet</button></div>
+    </details>
+    <button type="button" id="history-button" hidden>Transaction history</button>
   <button class="wallet-button" id="wallet-button" type="button" aria-haspopup="dialog">
     <span class="wallet-icon" aria-hidden="true"></span><span id="wallet-label">Connect Wallet</span>
   </button>
   </div>
-</header><dialog id="wallet-dialog" aria-labelledby="wallet-title">
+</header>
+<dialog id="notifications-dialog" class="profile-dialog" aria-labelledby="notifications-title">
+  <div class="dialog-heading"><h2 id="notifications-title">Notifications</h2><form method="dialog"><button class="wallet-close" aria-label="Close notifications">×</button></form></div>
+  <div class="notification-list">
+    <button class="notification-row" id="notifications-ping" type="button"><span class="notification-symbol" aria-hidden="true">•••</span><span><strong>Pings</strong><small id="notifications-ping-preview">Open inbox</small></span><span class="count-badge" id="notifications-ping-count" hidden></span></button>
+    <button class="notification-row" id="notifications-transactions" type="button"><span class="notification-symbol notification-usdc" aria-hidden="true">$</span><span><strong>Transactions</strong><small id="notifications-transaction-preview">View USDC activity</small></span><span class="count-badge" id="notifications-transaction-count" hidden></span></button>
+  </div>
+  <a id="notifications-recent" class="text-action" hidden>Reopen payment request</a>
+</dialog>
+<dialog id="wallet-dialog" aria-labelledby="wallet-title">
   <div class="dialog-heading"><h2 id="wallet-title">Connect Wallet</h2><div class="wallet-dialog-controls">
   <button class="wallet-disconnect" id="wallet-disconnect" type="button" hidden>Disconnect</button>
   <form method="dialog"><button class="wallet-close" aria-label="Close">×</button></form>
@@ -30,6 +46,7 @@
     <span class="solana-mark"><i></i><i></i><i></i></span><span class="zelle-watermark"><span class="zelle-initial">Z</span>elle</span>
   </div>
   <p class="wallet-prompt" id="wallet-prompt">Choose a wallet</p>
+  <div id="wallet-identity" class="wallet-identity" hidden></div>
   <p class="wallet-network">Network: Solana</p>
   <div class="wallet-options" id="wallet-options" aria-label="Solana wallets"></div>
   <button id="wallet-action" class="primary" type="button">Connect Wallet</button>
@@ -60,8 +77,9 @@
   <div class="profile-stack">
     <form class="profile-search" id="profile-search">
       <label class="profile-sr" for="profile-find-tag">Find a ZeTag</label>
-      <input id="profile-find-tag" placeholder="Find a ZeTag" required maxlength="25">
+      <input id="profile-find-tag" placeholder="Find a ZeTag" required maxlength="25" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="tag-suggestions">
       <button class="wallet-button" type="submit">Find</button>
+      <ul id="tag-suggestions" role="listbox" aria-label="Suggested ZeTags" hidden></ul>
     </form>
     <section class="card profile-card" aria-labelledby="profile-title">
       <div class="profile-card-tools">
@@ -80,7 +98,7 @@
         <div class="profile-actions">
           <button class="primary" type="button" id="profile-connect" hidden>Connect wallet</button>
           <button class="primary" type="button" id="profile-claim" hidden>Claim @tag</button>
-          <a class="linkbutton primary" id="profile-pay" hidden>ZePay</a>
+          <button class="primary" id="profile-pay" type="button" hidden>ZePay</button>
           <button class="profile-icon" id="profile-ping" type="button" aria-label="Open Ping" title="Open Ping" hidden>
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 11a8 8 0 0 1-8 8H5l1.4-3.3A8 8 0 1 1 20 11Z"/><path stroke-linecap="round" d="M9 11h.02m2.98 0h.02m2.98 0h.02"/></svg>
           </button>
@@ -120,14 +138,43 @@
   </form>
 </dialog>
 <dialog id="ping-dialog" class="profile-dialog" aria-labelledby="ping-title">
-  <div class="dialog-heading"><h2 id="ping-title">Ping inbox</h2><form method="dialog"><button class="wallet-close" aria-label="Close Ping">×</button></form></div>
+  <div class="dialog-heading">
+    <div class="ping-heading"><button class="profile-icon" type="button" id="ping-back" aria-label="Back to inbox" hidden>←</button>
+      <span id="ping-peer-avatar" hidden></span><h2 id="ping-title">Ping inbox</h2>
+      <span class="count-badge" id="ping-total" hidden></span></div>
+    <form method="dialog"><button class="wallet-close" aria-label="Close Ping">×</button></form>
+  </div>
   <ul class="ping-list" id="ping-list"></ul>
   <form id="ping-form" hidden>
     <label class="profile-sr" for="ping-message">Message</label>
     <input id="ping-message" maxlength="1000" required placeholder="Send a ping">
-    <button type="submit" class="wallet-button">Send</button>
+    <button type="submit" class="wallet-button send-ping" aria-label="Send ping"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 9-18 9 3-9zM6 12h15"/></svg></button>
   </form>
   <p class="help" id="ping-status" role="status"></p>
+</dialog>
+<dialog id="zepay-dialog" class="profile-dialog" aria-labelledby="zepay-title">
+  <div class="dialog-heading"><h2 id="zepay-title">ZePay</h2><form method="dialog"><button class="wallet-close" aria-label="Close ZePay">×</button></form></div>
+  <div class="zepay-recipient"><span id="zepay-avatar"></span><div><small>Sending to</small><strong id="zepay-recipient"></strong></div></div>
+  <form id="zepay-form">
+    <label for="zepay-amount">Amount</label>
+    <div class="zepay-amount"><input id="zepay-amount" inputmode="decimal" placeholder="0.00" maxlength="18" required><span>USDC</span></div>
+    <p class="help" id="zepay-available"></p>
+    <fieldset class="zepay-purpose"><legend>What’s it for?</legend>
+      <label><input name="purpose" type="radio" value="Lunch"><span>Lunch</span></label>
+      <label><input name="purpose" type="radio" value="Uber"><span>Uber</span></label>
+      <label><input name="purpose" type="radio" value="Other"><span>Other</span></label>
+    </fieldset>
+    <label class="profile-sr" for="zepay-note">Optional note</label>
+    <div class="zepay-note"><input id="zepay-note" maxlength="120" placeholder="Add a note (optional)"><button type="button" class="profile-icon" id="zepay-emoji-toggle" aria-label="Choose emoji" aria-controls="zepay-emojis" aria-expanded="false">☺</button></div>
+    <div class="profile-emojis" id="zepay-emojis" aria-label="Add an emoji" hidden></div>
+    <p id="zepay-status" class="help" role="status"></p>
+    <button class="primary" type="submit">Review payment</button>
+  </form>
+  <section id="zepay-review" hidden aria-label="Payment review">
+    <p id="zepay-summary"></p>
+    <p class="help">ZePay transfers are currently unavailable.</p>
+    <button type="button" class="secondary" id="zepay-back">Back to amount</button>
+  </section>
 </dialog>
 <dialog id="receipt-dialog" class="request-card" aria-labelledby="receipt-title">
   <form method="dialog" class="request-close"><button class="wallet-close" aria-label="Close">×</button></form>
