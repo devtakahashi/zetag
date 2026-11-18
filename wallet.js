@@ -26,10 +26,24 @@
   let balanceRequest;
   let busy = false;
   let pendingForm = null;
+  let restoring = false;
+  const providerKey = 'zetag:wallet-provider';
+
+  function rememberedProvider() {
+    try { return localStorage.getItem(providerKey); } catch { return null; }
+  }
+
+  function rememberProvider(name) {
+    try {
+      if (name) localStorage.setItem(providerKey, name);
+      else localStorage.removeItem(providerKey);
+    } catch {}
+  }
 
   function register(...items) {
     for (const wallet of items) wallets.add(wallet);
     if (dialog.open) renderWallet();
+    void restoreWallet();
     return () => {
       for (const wallet of items) wallets.delete(wallet);
       if (dialog.open) renderWallet();
@@ -38,9 +52,9 @@
 
   const api = Object.freeze({ register });
   window.addEventListener('wallet-standard:register-wallet', event => event.detail(api));
-  window.dispatchEvent(new CustomEvent('wallet-standard:app-ready', { detail: api }));
 
   function adapter(entry) {
+    if (!entry) return null;
     const standard = [...wallets].find(wallet =>
       wallet.name.toLowerCase().includes(entry.name.toLowerCase()) &&
       wallet.chains.some(chain => chain.startsWith('solana:')) &&
@@ -52,6 +66,8 @@
       )?.address;
       return {
         connect: async () => solanaAccount((await standard.features['standard:connect'].connect()).accounts),
+        restore: async () => solanaAccount(standard.accounts) ??
+          solanaAccount((await standard.features['standard:connect'].connect({ silent: true })).accounts),
         sign: async (message, address) => {
           const account = standard.accounts.find(item => item.address === address);
           const feature = standard.features['solana:signMessage'];
@@ -69,6 +85,12 @@
     if (!injected?.connect) return null;
     return {
       connect: async () => (await injected.connect())?.publicKey?.toString() ?? injected.publicKey?.toString(),
+      restore: async () => {
+        if (injected.isConnected && injected.publicKey) return injected.publicKey.toString();
+        if (entry.name === 'Phantom') {
+          return (await injected.connect({ onlyIfTrusted: true }))?.publicKey?.toString();
+        }
+      },
       sign: async message => {
         if (!injected.signMessage) throw new Error('This wallet does not support profile signatures.');
         const result = await injected.signMessage(message);
@@ -89,9 +111,10 @@
   }
 
   function renderWallet(error = '') {
-    get('wallet-label').textContent = address ? address.slice(0, 4) + '…' + address.slice(-4) : 'Connect Wallet';
+    const shortAddress = address ? address.slice(0, 5) + '…' + address.slice(-5) : '';
+    get('wallet-label').textContent = shortAddress || 'Connect Wallet';
     get('wallet-title').textContent = address ? 'Connected wallet' : 'Connect Wallet';
-    get('wallet-status').textContent = error || (address ? address.slice(0, 4) + '…' + address.slice(-4) : '');
+    get('wallet-status').textContent = error || shortAddress;
     get('wallet-status').title = address;
     get('wallet-prompt').hidden = Boolean(address);
     disconnect.hidden = !address;
@@ -136,13 +159,32 @@
     if (next === address) return;
     request?.abort();
     address = next;
-    document.dispatchEvent(new CustomEvent('zetag:wallet-changed', { detail: { address } }));
     if (!address) {
       session?.unsubscribe?.();
       session = null;
     }
     renderWallet();
+    document.dispatchEvent(new CustomEvent('zetag:wallet-changed', { detail: { address } }));
     refresh();
+  }
+
+  async function restoreWallet() {
+    if (address || busy || restoring || dialog.open) return;
+    const remembered = rememberedProvider();
+    const wallet = adapter(known.find(item => item.name === remembered));
+    if (!wallet) return;
+    restoring = true;
+    try {
+      const key = await wallet.restore();
+      if (!key || address || busy || dialog.open || rememberedProvider() !== remembered) return;
+      choice = remembered;
+      session = { wallet, unsubscribe: wallet.listen(updateAccount) };
+      updateAccount(key);
+    } catch {
+      // The wallet requires an explicit connection on this visit.
+    } finally {
+      restoring = false;
+    }
   }
 
   function openWallet() {
@@ -188,7 +230,16 @@
     disconnect.disabled = true;
     try {
       await session.wallet.disconnect();
+      rememberProvider('');
       updateAccount();
+      const response = await fetch('/pay/_profiles/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+        signal: AbortSignal.timeout(8000)
+      });
+      if (!response.ok) throw new Error();
+      document.dispatchEvent(new CustomEvent('zetag:wallet-signed-out'));
     } catch {
       renderWallet('Could not disconnect. Please try again.');
     } finally {
@@ -202,14 +253,12 @@
     busy = true;
     action.disabled = true;
     try {
-      if (session && address) {
-        await session.wallet.disconnect();
-        updateAccount();
-      } else {
+      if (!address) {
         const wallet = adapter(known.find(item => item.name === choice));
         if (!wallet) { renderWallet(choice + ' was not detected in this browser.'); return; }
         const key = await wallet.connect();
         if (!key) throw new Error('No Solana account');
+        rememberProvider(choice);
         session = { wallet, unsubscribe: wallet.listen(updateAccount) };
         updateAccount(key);
         const pending = pendingForm;
@@ -404,5 +453,8 @@
     }
   }
 
+  window.dispatchEvent(new CustomEvent('wallet-standard:app-ready', { detail: api }));
+  window.addEventListener('load', restoreWallet, { once: true });
+  void restoreWallet();
   refresh();
 })();

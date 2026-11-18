@@ -8,53 +8,68 @@
     ['coingecko','CoinGecko'], ['dex-screener','DEX Screener'],
     ['zetag-space-courier','ZeTag Space Courier'], ['zetag-after-hours','ZeTag After Hours']
   ];
-  const form = get('profile-form');
-  const input = get('profile-tag');
-  const status = get('profile-status');
-  const picker = get('avatar-options');
-  const photo = get('profile-avatar');
-  const initials = get('profile-initials');
-  const save = get('profile-save');
-  const upload = get('avatar-upload');
-  const query = new URLSearchParams(location.search);
-  const publicTag = query.get('tag');
+  const publicTag = new URLSearchParams(location.search).get('tag');
+  const viewingPublic = publicTag !== null;
   const api = new URL('../pay/_profiles', location.href);
+  const editor = get('profile-editor');
+  const ping = get('ping-dialog');
+  const status = get('profile-status');
+  const editStatus = get('profile-editor-status');
+  const input = get('profile-tag');
+  const bio = get('profile-bio-input');
+  const picker = get('avatar-options');
+  const upload = get('avatar-upload');
+  const save = get('profile-save');
+  const pingForm = get('ping-form');
+  let current;
   let avatar = '';
-  let loadId = 0;
+  let generation = 0;
   let uploadId = 0;
-  let saving = false;
   let uploading = false;
+  let saving = false;
+  let signingIn = false;
+  let peer;
+  let pingGeneration = 0;
+  let pingTimer = null;
+  let pingBusy = false;
 
-  function setDisabled() {
-    save.disabled = saving || uploading;
-    input.disabled = saving;
-    upload.disabled = saving;
-    get('avatar-reset').disabled = saving;
-    for (const button of picker.children) button.disabled = saving;
-  }
-
-  function cleanTag(value) {
-    return value.trim().toLowerCase().replace(/^@/, '');
-  }
-
+  const cleanTag = value => value.trim().toLowerCase().replace(/^@/, '');
   function avatarSource(value) {
     if (presets.some(([key]) => key === value)) return '../assets/avatars/' + value + '.webp';
-    if (value.length <= 8000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(value)) return value;
-    return '';
+    return typeof value === 'string' && value.length <= 8000 &&
+      /^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(value) ? value : '';
   }
 
-  function drawAvatar(value, tag) {
+  function draw(photo, initials, value, tag) {
     const source = avatarSource(value);
     photo.hidden = !source;
     initials.hidden = Boolean(source);
     initials.textContent = tag ? tag.replace(/[_-]/g, '').slice(0, 2).toUpperCase() : '@';
+    photo.onerror = () => { photo.hidden = true; initials.hidden = false; };
     if (source && photo.getAttribute('src') !== source) photo.src = source;
     if (!source) photo.removeAttribute('src');
-    for (const button of picker.children) button.setAttribute('aria-pressed', String(button.value === value));
   }
 
-  photo.onerror = () => { photo.hidden = true; initials.hidden = false; };
-  const preview = () => drawAvatar(avatar, cleanTag(input.value));
+  function preview() {
+    draw(get('editor-avatar'), get('editor-initials'), avatar, cleanTag(input.value));
+    for (const button of picker.children) button.setAttribute('aria-pressed', String(button.value === avatar));
+  }
+
+  function setDisabled() {
+    save.disabled = saving || uploading;
+    input.disabled = bio.disabled = upload.disabled = get('avatar-reset').disabled = saving;
+    for (const button of [...picker.children, ...get('profile-emojis').children]) button.disabled = saving;
+  }
+
+  function setAvatar(value) {
+    uploadId++;
+    uploading = false;
+    upload.value = '';
+    avatar = value;
+    editStatus.textContent = '';
+    setDisabled();
+    preview();
+  }
 
   for (const [key, name] of presets) {
     const button = document.createElement('button');
@@ -66,108 +81,177 @@
     image.src = avatarSource(key);
     image.alt = '';
     image.width = image.height = 96;
-    image.loading = 'lazy';
     button.append(image);
     picker.append(button);
-    button.onclick = () => {
-      uploadId++;
-      uploading = false;
-      upload.value = '';
-      avatar = key;
-      status.textContent = '';
-      setDisabled();
-      preview();
-    };
+    button.onclick = () => setAvatar(key);
   }
-  input.oninput = preview;
-  get('avatar-reset').onclick = () => {
-    uploadId++;
-    uploading = false;
-    upload.value = '';
-    avatar = '';
-    status.textContent = '';
-    setDisabled();
-    preview();
-  };
-  get('profile-connect').onclick = () => get('wallet-button').click();
+  for (const [emoji, name] of [['☕','coffee'],['✨','sparkles'],['💜','purple heart'],['🚀','rocket'],['🙌','raised hands'],['😊','smile']]) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = emoji;
+    button.setAttribute('aria-label', 'Add ' + name + ' emoji');
+    button.onclick = () => {
+      const start = bio.selectionStart;
+      const end = bio.selectionEnd;
+      if (bio.value.length - (end - start) + emoji.length > 120) return;
+      bio.setRangeText(emoji, start, end, 'end');
+      bio.focus();
+    };
+    get('profile-emojis').append(button);
+  }
 
-  async function call(suffix, payload) {
-    const response = await fetch(api.href + suffix, {
+  input.oninput = preview;
+  get('avatar-reset').onclick = () => setAvatar('');
+  get('profile-search').onsubmit = event => {
+    event.preventDefault();
+    const tag = cleanTag(get('profile-find-tag').value);
+    if (!tags.test(tag)) { status.textContent = 'Enter a valid ZeTag.'; return; }
+    location.href = './?tag=' + encodeURIComponent(tag);
+  };
+
+  async function call(path, payload) {
+    const response = await fetch(api.href + path, {
       ...(payload ? {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       } : {}),
-      signal: AbortSignal.timeout(12000)
+      signal: AbortSignal.timeout(12000),
+      cache: 'no-store'
     });
-    if (!response.headers.get('Content-Type')?.includes('application/json')) throw new Error('The profile service is not deployed yet.');
+    if (!response.headers.get('Content-Type')?.includes('application/json')) throw new Error('Could not reach the profile service.');
     const data = await response.json();
-    if (response.status === 404 && !payload) return null;
-    if (!response.ok) throw new Error(data.error || 'Profile service unavailable.');
+    if (!response.ok) {
+      const error = new Error(data.error || 'Profile service unavailable.');
+      error.status = response.status;
+      throw error;
+    }
     return data;
   }
 
+  const publicUrl = tag => new URL('./?tag=' + encodeURIComponent(tag), location.href).href;
+  get('profile-copy').onclick = async () => {
+    if (!current) return;
+    try {
+      await navigator.clipboard.writeText(publicUrl(current.tag));
+      status.textContent = 'Profile link copied.';
+    } catch {
+      location.href = publicUrl(current.tag);
+    }
+  };
+
   function show(profile) {
-    const title = get('profile-title');
-    const wallet = get('profile-wallet');
-    const joined = get('profile-joined');
-    const link = get('profile-copy');
-    title.textContent = profile ? '@' + profile.tag : 'Your ZeTag';
-    wallet.textContent = profile?.wallet ?? window.ZeTagWallet?.address ?? '';
-    wallet.hidden = !wallet.textContent;
-    joined.textContent = profile ? 'Joined ' + new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(profile.joinedAt)) : '';
-    joined.hidden = !profile;
-    link.hidden = !profile;
-    drawAvatar(profile?.avatar ?? '', profile?.tag ?? '');
-    if (profile) link.onclick = async () => {
-      const url = new URL(location.href);
-      url.search = new URLSearchParams({ tag: profile.tag }).toString();
-      try {
-        await navigator.clipboard.writeText(url.href);
-        status.textContent = 'Profile link copied.';
-      } catch {
-        status.textContent = 'Open your shareable profile and copy its address.';
-        location.href = url.href;
-      }
-    };
+    current = profile;
+    const mine = !viewingPublic && Boolean(profile);
+    get('profile-title').textContent = profile ? '@' + profile.tag : 'Your ZeTag';
+    get('profile-bio').textContent = profile?.bio ?? '';
+    get('profile-bio').hidden = !profile?.bio;
+    get('profile-add-bio').hidden = !mine || Boolean(profile?.bio);
+    get('profile-joined').textContent = profile ? 'Joined ' + new Intl.DateTimeFormat('en', {
+      month: 'short', year: 'numeric', timeZone: 'UTC'
+    }).format(new Date(profile.joinedAt)) : '';
+    get('profile-joined').hidden = !profile;
+    get('profile-copy').hidden = !profile;
+    get('profile-edit').hidden = !mine;
+    get('profile-activity').hidden = !mine;
+    get('profile-public').hidden = !mine;
+    get('profile-pay').hidden = !viewingPublic || !profile;
+    get('profile-ping').hidden = !viewingPublic || !profile;
+    if (profile) {
+      get('profile-public').href = publicUrl(profile.tag);
+      get('profile-pay').href = '../?tag=' + encodeURIComponent(profile.tag);
+    }
+    draw(get('profile-avatar'), get('profile-initials'), profile?.avatar ?? '', profile?.tag ?? '');
   }
 
-  async function load(address) {
-    const id = ++loadId;
-    uploadId++;
-    uploading = false;
-    upload.value = '';
-    const connect = get('profile-connect');
-    const pay = get('profile-pay');
-    form.hidden = true;
-    connect.hidden = Boolean(publicTag || address);
-    pay.hidden = true;
-    show(null);
-    if (publicTag && !tags.test(publicTag)) { status.textContent = 'Invalid ZeTag.'; return; }
-    if (!publicTag && !address) { status.textContent = 'Connect your wallet to claim or edit your ZeTag.'; return; }
+  function promptOwner(text, connected) {
+    get('profile-connect').hidden = false;
+    get('profile-connect').textContent = connected ? 'Sign in with wallet' : 'Connect wallet';
+    status.textContent = text;
+  }
+
+  async function load(address = window.ZeTagWallet?.address) {
+    const id = ++generation;
+    get('profile-connect').hidden = true;
+    get('profile-claim').hidden = true;
     status.textContent = 'Loading profile…';
+    if (viewingPublic && !tags.test(publicTag)) { status.textContent = 'Enter a valid ZeTag.'; return; }
     try {
-      const profile = await call(publicTag ? '/' + publicTag : '?wallet=' + encodeURIComponent(address));
-      if (id !== loadId) return;
-      show(profile);
-      if (publicTag) {
-        status.textContent = profile ? 'USDC transfers are currently unavailable.' : 'This ZeTag has not been claimed.';
-        if (profile) {
-          pay.href = '../?tag=' + encodeURIComponent(profile.tag);
-          pay.hidden = false;
-        }
+      if (viewingPublic) {
+        const profile = await call('/' + publicTag);
+        if (id !== generation) return;
+        show(profile);
+        status.textContent = '';
         return;
       }
-      avatar = profile?.avatar ?? '';
-      input.value = profile ? '@' + profile.tag : '';
-      input.readOnly = Boolean(profile);
-      save.textContent = profile ? 'Save avatar' : 'Claim @tag';
-      form.hidden = false;
-      setDisabled();
-      preview();
-      status.textContent = '';
+      const data = await call('/_me');
+      if (id !== generation) return;
+      if (address && data.wallet !== address) {
+        show(null);
+        promptOwner('Sign in to open the profile for this wallet.', true);
+        return;
+      }
+      show(data.profile);
+      if (data.profile) {
+        status.textContent = '';
+      } else {
+        get('profile-claim').hidden = false;
+        status.textContent = 'Choose a tag and avatar to create your profile.';
+      }
     } catch (error) {
-      if (id === loadId) status.textContent = error.message;
+      if (id !== generation) return;
+      show(null);
+      if (!viewingPublic && error.status === 401) {
+        promptOwner(address ? 'Sign a message to open your profile or claim a tag.' : 'Connect your wallet to open your profile.', Boolean(address));
+      } else status.textContent = error.message;
     }
   }
+
+  async function signIn() {
+    const wallet = window.ZeTagWallet;
+    if (!wallet?.address) {
+      get('wallet-button').click();
+      return null;
+    }
+    if (signingIn) return null;
+    const address = wallet.address;
+    signingIn = true;
+    try {
+      const challenge = await call('/login/challenge', { wallet: address });
+      if (wallet.address !== address) return null;
+      const signature = await wallet.signMessage(challenge.message);
+      return await call('/login', { nonce: challenge.nonce, signature });
+    } finally {
+      signingIn = false;
+    }
+  }
+
+  get('profile-connect').onclick = async () => {
+    try {
+      if (await signIn()) await load();
+    } catch (error) { status.textContent = error.message; }
+  };
+
+  function openEditor(focusBio = false) {
+    if (!window.ZeTagWallet?.address) {
+      get('wallet-button').click();
+      return;
+    }
+    if (saving) return;
+    input.value = current ? '@' + current.tag : '';
+    bio.value = current?.bio ?? '';
+    setAvatar(current?.avatar ?? '');
+    get('editor-title').textContent = current ? 'Edit profile' : 'Claim your ZeTag';
+    save.textContent = current ? 'Save changes' : 'Claim @tag';
+    editor.showModal();
+    if (focusBio) bio.focus();
+  }
+  get('profile-edit').onclick = () => openEditor();
+  get('profile-claim').onclick = () => openEditor();
+  get('profile-add-bio').onclick = () => openEditor(true);
+  editor.addEventListener('close', () => {
+    uploadId++;
+    uploading = false;
+    setDisabled();
+  });
 
   upload.onchange = async () => {
     const file = upload.files[0];
@@ -197,10 +281,10 @@
       if (id !== uploadId) return;
       if (!avatarSource(result)) throw new Error('Could not prepare this photo.');
       avatar = result;
-      status.textContent = '';
+      editStatus.textContent = '';
       preview();
     } catch (error) {
-      if (id === uploadId) status.textContent = error.message;
+      if (id === uploadId) editStatus.textContent = error.message;
     } finally {
       if (id === uploadId) {
         uploading = false;
@@ -210,42 +294,161 @@
     }
   };
 
-  form.onsubmit = async event => {
+  get('profile-form').onsubmit = async event => {
     event.preventDefault();
     if (saving || uploading) return;
     const wallet = window.ZeTagWallet;
     const address = wallet?.address;
     const tag = cleanTag(input.value);
-    if (!address || !tags.test(tag)) { status.textContent = 'Connect a wallet and enter a tag with 3–24 letters, numbers, underscores, or hyphens.'; return; }
+    if (!address || !tags.test(tag)) { editStatus.textContent = 'Use 3–24 letters, numbers, underscores, or hyphens.'; return; }
     saving = true;
+    const id = generation;
     setDisabled();
-    const id = loadId;
     try {
-      status.textContent = 'Preparing your profile…';
-      const challenge = await call('/challenge', { wallet: address, tag, avatar });
+      editStatus.textContent = 'Preparing your profile…';
+      const challenge = await call('/challenge', { wallet: address, tag, avatar, bio: bio.value.trim() });
       if (wallet.address !== address) return;
-      status.textContent = 'Approve the profile signature in your wallet.';
+      editStatus.textContent = 'Approve the profile signature in your wallet.';
       const signature = await wallet.signMessage(challenge.message);
-      const profile = await call('', { nonce: challenge.nonce, signature });
-      if (id !== loadId) return;
-      show(profile);
-      input.value = '@' + profile.tag;
-      input.readOnly = true;
-      save.textContent = 'Save avatar';
+      const result = await call('', { nonce: challenge.nonce, signature });
+      if (id !== generation) return;
+      show(result.profile);
+      get('profile-claim').hidden = true;
+      if (editor.open) editor.close();
       status.textContent = 'Profile saved.';
     } catch (error) {
-      if (id === loadId) status.textContent = error.message;
+      if (id === generation) editStatus.textContent = error.message;
     } finally {
       saving = false;
       setDisabled();
     }
   };
 
+  for (const tab of document.querySelectorAll('[data-activity]')) tab.onclick = () => {
+    for (const item of document.querySelectorAll('[data-activity]')) item.setAttribute('aria-pressed', String(item === tab));
+    get('activity-empty').textContent = {
+      sent: 'No tagged payments sent yet.',
+      received: 'No tagged payments received yet.',
+      withdrawn: 'No withdrawals yet.'
+    }[tab.dataset.activity];
+  };
+
+  function stopPolling() { clearInterval(pingTimer); pingTimer = null; }
+  async function openPing(tag) {
+    stopPolling();
+    const id = ++pingGeneration;
+    peer = tag;
+    const list = get('ping-list');
+    list.replaceChildren();
+    get('ping-message').value = '';
+    pingForm.hidden = true;
+    get('ping-title').textContent = tag ? 'Ping @' + tag : 'Ping inbox';
+    get('ping-status').textContent = 'Loading…';
+    if (!ping.open) ping.showModal();
+    try {
+      let info;
+      try {
+        const address = window.ZeTagWallet?.address;
+        if (address) {
+          const signed = await call('/_me');
+          if (signed.wallet !== address) throw Object.assign(new Error(), { status: 401 });
+        }
+        if (id !== pingGeneration) return;
+        info = await call('/_ping' + (tag ? '/' + tag : ''));
+      }
+      catch (error) {
+        if (error.status !== 401) throw error;
+        if (!window.ZeTagWallet?.address) throw new Error('Connect your wallet, then open Ping again.');
+        const signed = await signIn();
+        if (!signed || id !== pingGeneration) return;
+        info = await call('/_ping' + (tag ? '/' + tag : ''));
+      }
+      if (id !== pingGeneration) return;
+      showMessages(info);
+      pingTimer = setInterval(async () => {
+        try {
+          const fresh = await call('/_ping' + (tag ? '/' + tag : ''));
+          if (id === pingGeneration) showMessages(fresh);
+        } catch {}
+      }, 6000);
+    } catch (error) {
+      if (id === pingGeneration) get('ping-status').textContent = error.message;
+    }
+  }
+
+  function showMessages(data) {
+    const list = get('ping-list');
+    if (data.contacts) {
+      list.replaceChildren(...data.contacts.map(tag => {
+        const li = document.createElement('li');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'text-action';
+        button.textContent = '@' + tag;
+        button.onclick = () => openPing(tag);
+        li.append(button);
+        return li;
+      }));
+      get('ping-status').textContent = data.contacts.length ? '' : 'No conversations yet. Find a ZeTag to send a ping.';
+      return;
+    }
+    const next = data.messages.at(-1)?.id;
+    if (list.dataset.last !== String(next) || !list.children.length) {
+      list.replaceChildren(...data.messages.map(message => {
+        const li = document.createElement('li');
+        li.className = message.mine ? 'ping-mine' : 'ping-theirs';
+        li.textContent = message.body;
+        li.title = new Date(message.sentAt).toLocaleString();
+        return li;
+      }));
+      list.dataset.last = String(next);
+      list.scrollTop = list.scrollHeight;
+    }
+    pingForm.hidden = false;
+    get('ping-status').textContent = data.messages.length ? '' : 'Send the first ping.';
+  }
+
+  get('profile-ping').onclick = () => { if (current) openPing(current.tag); };
+  get('ping-inbox').onclick = () => openPing(null);
+  ping.addEventListener('close', () => { ++pingGeneration; stopPolling(); });
+  pingForm.onsubmit = async event => {
+    event.preventDefault();
+    if (!peer || pingBusy) return;
+    const message = get('ping-message');
+    const id = pingGeneration;
+    const tag = peer;
+    const body = message.value.trim();
+    if (!body) return;
+    pingBusy = true;
+    get('ping-status').textContent = 'Sending…';
+    try {
+      await call('/_ping/' + tag, { body });
+      if (id !== pingGeneration) return;
+      message.value = '';
+      const data = await call('/_ping/' + tag);
+      if (id === pingGeneration) showMessages(data);
+    } catch (error) {
+      if (id === pingGeneration) get('ping-status').textContent = error.message;
+    } finally {
+      pingBusy = false;
+    }
+  };
+
   document.addEventListener('zetag:wallet-changed', event => {
-    if (publicTag) return;
+    if (ping.open) ping.close();
+    if (viewingPublic) return;
     const walletDialog = get('wallet-dialog');
     if (event.detail.address && walletDialog.open) walletDialog.close();
+    if (editor.open) editor.close();
     load(event.detail.address);
   });
-  load(window.ZeTagWallet?.address ?? '');
+  document.addEventListener('zetag:wallet-signed-out', () => {
+    if (ping.open) ping.close();
+    if (viewingPublic) return;
+    ++generation;
+    show(null);
+    get('profile-claim').hidden = true;
+    promptOwner('Connect your wallet to open your profile.', false);
+  });
+  load();
 })();
