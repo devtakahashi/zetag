@@ -421,3 +421,23 @@ form:has(.logo-file:focus-visible) .logo-upload { outline:2px solid #c4aaff; out
 }
 .wallet-connected .wallet-stats { margin-top:16px; }
 .wallet-connected .wallet-stats dd { font-size:clamp(14px,3.1vw,19px); }
+
+/* Keep standalone icon controls consistent across the header, profiles, and dialogs. */
+:is(.zetag-nav .nav-icon, .profile-icon, .wallet-close, .send-ping) {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+  :is(.zetag-nav .nav-icon, .profile-icon, .wallet-close, .send-ping):hover {
+    color: #dbc6ff;
+    background: transparent;
+  }
+}
+
+:is(.zetag-nav .nav-icon, .profile-icon, .wallet-close, .send-ping):focus-visible {
+  outline: 2px solid #ba92ff;
+  outline-offset: 2px;
+  background: transparent;
+}
