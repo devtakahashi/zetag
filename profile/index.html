@@ -6,10 +6,10 @@
   <meta name="description" content="Claim a ZeTag and make it yours.">
   <title>Profile | ZeTag</title>
   <link rel="icon" type="image/png" href="../zetag-icon.png">
-  <link rel="stylesheet" href="../style.css?v=icon-align-2">
+  <link rel="stylesheet" href="../style.css?v=avatar-header-3">
   <link rel="stylesheet" href="profile.css">
-  <script src="../profile/ui.js?v=ping2" defer></script>
-  <script src="profile.js?v=ping2" defer></script>
+  <script src="../profile/ui.js?v=avatar-header-3" defer></script>
+  <script src="profile.js?v=avatar-header-3" defer></script>
   <script src="../wallet.js?v=mobile-wallet-1" defer></script>
 <link rel="stylesheet" href="../profile/profile.css">
 <link rel="stylesheet" href="../profile/premium.css?v=ping2">
@@ -19,8 +19,8 @@
   <a class="brand" href="../"><span class="brand-mark" aria-hidden="true"></span>ZeTag</a>
   <div class="wallet-tools zetag-nav">
     <button class="wallet-button nav-icon" id="notifications-button" type="button" aria-label="Notifications" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-11 12a2 2 0 0 0 4 0"/></svg><span class="count-badge nav-count" hidden></span></button>
-    <a class="wallet-button nav-icon profile-link" href="../profile/" aria-label="Profile" title="Profile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 10a4 4 0 1 1 4-4M3 21v-4a5 5 0 0 1 5-5h3M11.5 12.5h-2a1.5 1.5 0 0 0 0 3h1a1.5 1.5 0 0 1 0 3h-2M10 11v1.5m0 6V20m8-9v6m-3-3h6"/></svg></a>
-    <details class="profile-menu"><summary class="wallet-button nav-icon" aria-label="Profile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 10a4 4 0 1 1 4-4M3 21v-4a5 5 0 0 1 5-5h3M11.5 12.5h-2a1.5 1.5 0 0 0 0 3h1a1.5 1.5 0 0 1 0 3h-2M10 11v1.5m0 6V20m8-9v6m-3-3h6"/></svg></summary>
+    <a class="wallet-button nav-icon profile-link" href="../profile/" aria-label="Profile" title="Profile"><svg class="account-glyph" viewBox="0 0 28 28" aria-hidden="true"><circle cx="10" cy="6" r="3.5"/><path d="M3 23v-5a7 7 0 0 1 7-7h1M13 15h-3a2 2 0 0 0 0 4h1a2 2 0 0 1 0 4H8m2-10v2m0 8v2m12-12v8m-4-4h8"/></svg></a>
+    <details class="profile-menu"><summary class="wallet-button nav-icon" aria-label="Profile"><svg class="account-glyph" viewBox="0 0 28 28" aria-hidden="true"><circle cx="10" cy="6" r="3.5"/><path d="M3 23v-5a7 7 0 0 1 7-7h1M13 15h-3a2 2 0 0 0 0 4h1a2 2 0 0 1 0 4H8m2-10v2m0 8v2m12-12v8m-4-4h8"/></svg></summary>
       <div class="profile-menu-panel"><a href="../profile/">My profile</a><button type="button" id="mobile-wallet">Connect wallet</button></div>
     </details>
     <button type="button" id="history-button" hidden>Transaction history</button>
@@ -131,7 +131,7 @@
     <div class="profile-upload">
       <label for="avatar-upload" class="logo-upload">Upload your own photo</label>
       <input type="file" id="avatar-upload" class="logo-file" accept="image/png,image/jpeg,image/webp">
-      <button type="button" id="avatar-reset" class="text-action">Use initials</button>
+      <button type="button" id="avatar-reset" class="text-action">Choose a random avatar</button>
     </div>
     <p class="help" id="profile-editor-status" role="status"></p>
     <button class="primary" id="profile-save" type="submit">Save changes</button>

@@ -105,6 +105,17 @@
   const bell = get('notifications-button');
   const mobile = get('mobile-wallet');
   const menu = mobile.closest('details');
+  const mobileProfile = menu.querySelector('summary');
+  const profileGlyph = mobileProfile.firstElementChild.cloneNode(true);
+  function showMobileAvatar(profile) {
+    if (profile && owner) {
+      mobileProfile.replaceChildren(avatar(profile, 'header-avatar'));
+      mobileProfile.setAttribute('aria-label', 'Profile @' + profile.tag);
+    } else {
+      mobileProfile.replaceChildren(profileGlyph.cloneNode(true));
+      mobileProfile.setAttribute('aria-label', 'Profile');
+    }
+  }
   let owner = '';
   let pingUnread = 0;
   let contacts = [];
@@ -112,6 +123,7 @@
   let seen = new Set();
   let revision = 0;
   let pending = false;
+  let refreshAgain = false;
 
   const unreadTx = () => transactions.filter(tx => !seen.has(tx.signature));
 
@@ -127,12 +139,16 @@
   }
 
   async function refreshProfile() {
-    if (!owner || pending) return;
+    if (!owner) return;
+    if (pending) { refreshAgain = true; return; }
+    refreshAgain = false;
     const id = revision;
     pending = true;
     try {
       const data = await api('/_me');
-      if (id !== revision || data.wallet !== owner) return;
+      if (id !== revision) return;
+      if (data.wallet !== owner) { showMobileAvatar(null); return; }
+      showMobileAvatar(data.profile);
       document.dispatchEvent(new CustomEvent('zetag:wallet-profile', { detail: { owner, profile: data.profile } }));
       if (!data.profile) return;
       const inbox = await api('/_ping');
@@ -142,17 +158,22 @@
       update();
     } catch (error) {
       if (id === revision && (error.status === 401 || error.status === 403)) {
+        showMobileAvatar(null);
         pingUnread = 0;
         contacts = [];
         update();
       }
     } finally {
-      if (id === revision) pending = false;
+      if (id === revision) {
+        pending = false;
+        if (refreshAgain) void refreshProfile();
+      }
     }
   }
 
   document.addEventListener('zetag:wallet-changed', ({ detail }) => {
     owner = detail.address;
+    showMobileAvatar(null);
     ++revision;
     pending = false;
     pingUnread = 0;
@@ -165,6 +186,12 @@
     mobile.textContent = owner ? 'Wallet' : 'Connect wallet';
     update();
     void refreshProfile();
+  });
+  document.addEventListener('zetag:wallet-signed-out', () => {
+    showMobileAvatar(null);
+    pingUnread = 0;
+    contacts = [];
+    update();
   });
   document.addEventListener('zetag:profile-session', refreshProfile);
   document.addEventListener('zetag:ping-updated', refreshProfile);

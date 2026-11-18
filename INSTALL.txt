@@ -1,0 +1,18 @@
+ZeTag header and default-avatar update
+
+1. Extract this ZIP.
+2. Upload style.css, index.html, profile/index.html, profile/profile.js,
+   profile/ui.js, and pay/index.html to their matching GitHub paths.
+3. Copy backend/profiles.mjs into your local ZeTag backend folder.
+   Copy pay/index.html into the local pay folder beside backend.
+4. In the VS Code terminal inside backend, run:
+   npx wrangler deploy
+5. Wait for GitHub Pages to publish, then refresh ZeTag.
+
+There is no new database migration for this update.
+
+On mobile and tablet the profile control shows the claimed avatar after the
+connected wallet has signed in. Switching wallets or disconnecting resets the
+control. Avatar edits refresh it. Desktop keeps the profile glyph.
+A new claim with no avatar receives a randomly selected preset, saved in D1.
+An existing avatar is retained when an update omits an avatar.

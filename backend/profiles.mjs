@@ -91,7 +91,13 @@ async function createChallenge(db, url, input, login) {
   }
   const nonce = crypto.randomUUID();
   const expires = Date.now() + 300000;
-  const details = login ? '' : JSON.stringify({ avatar, bio });
+  let selectedAvatar = avatar;
+  if (!login && !selectedAvatar) {
+    const existing = await db.prepare('SELECT avatar FROM profiles WHERE wallet = ?').bind(wallet).first();
+    const choices = [...presets];
+    selectedAvatar = existing?.avatar || choices[crypto.getRandomValues(new Uint32Array(1))[0] % choices.length];
+  }
+  const details = login ? '' : JSON.stringify({ avatar: selectedAvatar, bio });
   const message = [
     login ? 'Sign in to ZeTag' : 'Save your ZeTag profile', 'Site: ' + url.origin, 'Wallet: ' + wallet,
     ...(login ? [] : ['Tag: @' + tag, 'Profile hash: ' + await digest(details)]),

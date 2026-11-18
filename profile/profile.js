@@ -88,7 +88,7 @@
   emojiPicker(get('profile-emojis'), bio);
 
   input.oninput = preview;
-  get('avatar-reset').onclick = () => setAvatar('');
+  get('avatar-reset').onclick = () => setAvatar(presets[crypto.getRandomValues(new Uint32Array(1))[0] % presets.length][0]);
   const finder = get('profile-find-tag');
   const suggestions = get('tag-suggestions');
   let searchTimer, searchRequest;

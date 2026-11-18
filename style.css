@@ -533,3 +533,47 @@ header .zetag-nav .nav-icon {
 header .zetag-nav .nav-icon svg {
   display: block;
 }
+
+/* Match the compact header spacing on every screen size. */
+header .zetag-nav {
+  align-items: center;
+  gap: 0;
+}
+
+header .zetag-nav > .profile-menu {
+  margin: 0;
+}
+
+header .zetag-nav .nav-icon {
+  width: 40px;
+  height: 44px;
+  min-width: 40px;
+  padding: 0;
+  margin: 0;
+  display: inline-grid;
+  place-items: center;
+}
+
+header .zetag-nav .nav-icon svg {
+  width: 28px;
+  height: 28px;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+header .zetag-nav #wallet-button {
+  margin-left: 10px;
+}
+
+header .zetag-nav .header-avatar {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #a98ac8;
+}
+
+@media (max-width: 1023px) {
+  header .zetag-nav .profile-link {
+    display: none;
+  }
+}
