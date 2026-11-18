@@ -509,3 +509,27 @@ form:has(.logo-file:focus-visible) .logo-upload { outline:2px solid #c4aaff; out
     right: 0;
   }
 }
+
+
+/* The header menu must not inherit the general details top margin. */
+header .zetag-nav > .profile-menu {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  font-size: inherit;
+  line-height: 1;
+  align-self: center;
+}
+
+header .zetag-nav .nav-icon {
+  box-sizing: border-box;
+  align-self: center;
+  vertical-align: middle;
+  line-height: 1;
+  color: #f1eafa;
+}
+
+header .zetag-nav .nav-icon svg {
+  display: block;
+}
