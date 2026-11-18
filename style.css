@@ -441,3 +441,71 @@ form:has(.logo-file:focus-visible) .logo-upload { outline:2px solid #c4aaff; out
   outline-offset: 2px;
   background: transparent;
 }
+
+.zetag-nav #wallet-button {
+  background: transparent;
+  border-color: #8268a8;
+}
+
+.zetag-nav #wallet-button:hover {
+  color: #dbc6ff;
+  border-color: #b89bdf;
+}
+
+.zetag-nav #wallet-button:focus-visible,
+.wallet-option:focus-visible {
+  outline: 2px solid #ba92ff;
+  outline-offset: 2px;
+}
+
+.wallet-option {
+  align-content: center;
+  height: auto;
+  min-height: 70px;
+  gap: 3px;
+  padding: 6px 2px;
+  text-decoration: none;
+}
+
+.wallet-option .wallet-option-label {
+  color: inherit;
+  font-size: clamp(9px, 2.7vw, 11px);
+}
+
+@media (max-width: 1023px) {
+  header:has(.zetag-nav) {
+    align-items: center;
+    padding-block: 18px;
+  }
+
+  .zetag-nav {
+    gap: 4px;
+  }
+
+  header .zetag-nav .nav-icon {
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  header .zetag-nav .nav-icon svg {
+    width: 21px;
+    height: 21px;
+    flex: none;
+  }
+
+  .zetag-nav .profile-menu {
+    align-self: center;
+    line-height: 1;
+  }
+
+  .zetag-nav .nav-count {
+    top: 0;
+    right: 0;
+  }
+}

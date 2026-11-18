@@ -15,10 +15,33 @@
   const wallets = new Set();
   const known = [
     { name: 'Jupiter', site: 'https://jup.ag/mobile' },
-    { name: 'Phantom', site: 'https://phantom.com/download', injected: () => window.phantom?.solana },
-    { name: 'Solflare', site: 'https://solflare.com/', injected: () => window.solflare },
-    { name: 'Backpack', site: 'https://backpack.app/', injected: () => window.backpack?.solana ?? window.backpack }
+    {
+      name: 'Phantom', site: 'https://phantom.com/download', browse: 'https://phantom.app/ul/browse/',
+      injected: () => window.phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null)
+    },
+    {
+      name: 'Solflare', site: 'https://solflare.com/', browse: 'https://solflare.com/ul/v1/browse/',
+      injected: () => window.solflare ?? (window.solana?.isSolflare ? window.solana : null)
+    },
+    {
+      name: 'Backpack', site: 'https://backpack.app/', browse: 'https://backpack.app/ul/v1/browse/',
+      injected: () => window.backpack?.solana ?? window.backpack ?? (window.solana?.isBackpack ? window.solana : null)
+    }
   ];
+  const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+
+  function browseLink(entry) {
+    if (!mobile || location.protocol !== 'https:' || !entry.browse) return '';
+    return entry.browse + encodeURIComponent(location.href) + '?ref=' + encodeURIComponent(location.origin);
+  }
+
+  function mobileInstructions(entry) {
+    return entry.browse
+      ? 'Open this page inside ' + entry.name + ', then tap ' + entry.name + ' to approve the connection.'
+      : 'Open this page in the Jupiter Mobile browser, then tap Jupiter to connect.';
+  }
+
   let choice = '';
   let session = null;
   let address = '';
@@ -120,7 +143,6 @@
     get('wallet-prompt').hidden = Boolean(address);
     disconnect.hidden = !address;
     disconnect.disabled = busy;
-    action.hidden = Boolean(address);
     dialog.classList.toggle('wallet-connected', Boolean(address));
     get('wallet-refresh').hidden = !address;
     get('wallet-view-history').hidden = !address;
@@ -130,29 +152,55 @@
     }
     options.replaceChildren();
     for (const item of known) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'wallet-option';
-      button.setAttribute('aria-pressed', String(item.name === choice));
-      button.setAttribute('aria-label', item.name);
-      button.title = item.name;
+      const wallet = adapter(item);
+      const link = wallet ? '' : browseLink(item);
+      const control = document.createElement(link ? 'a' : 'button');
+      if (link) {
+        control.href = link;
+        control.setAttribute('aria-label', 'Open in ' + item.name);
+      } else {
+        control.type = 'button';
+        control.setAttribute('aria-pressed', String(item.name === choice));
+      }
+      control.className = 'wallet-option';
+      control.title = item.name;
       const icon = document.createElement('span');
       icon.className = 'wallet-logo wallet-logo-' + item.name.toLowerCase();
       icon.setAttribute('aria-hidden', 'true');
-      button.append(icon);
-      button.onclick = () => { choice = item.name; renderWallet(); options.querySelector('[aria-pressed="true"]')?.focus(); };
-      options.append(button);
+      const label = document.createElement('span');
+      label.className = 'wallet-option-label';
+      label.textContent = item.name;
+      control.append(icon, label);
+      control.onclick = event => {
+        const current = adapter(item);
+        if (link && !current && !busy && !address) {
+          // Follow the real link directly so the mobile OS can open the wallet app.
+          get('wallet-status').textContent = mobileInstructions(item);
+          return;
+        }
+        event.preventDefault();
+        if (busy || address) return;
+        choice = item.name;
+        if (current) void connectWallet(item, current);
+        else {
+          renderWallet(mobile ? mobileInstructions(item) : item.name + ' was not detected in this browser.');
+          options.querySelector('[aria-pressed="true"]')?.focus();
+        }
+      };
+      options.append(control);
     }
     const selected = known.find(item => item.name === choice);
     const available = Boolean(adapter(selected));
+    const link = browseLink(selected);
+    action.hidden = Boolean(address) || !available;
     action.disabled = busy;
 
     fallback.hidden = Boolean(address) || available;
-    const phantomMobile = choice === 'Phantom' && /Android|iPhone|iPad/i.test(navigator.userAgent) && location.protocol === 'https:';
-    fallback.href = phantomMobile
-      ? 'https://phantom.app/ul/browse/' + encodeURIComponent(location.href) + '?ref=' + encodeURIComponent(location.origin)
-      : selected.site;
-    fallback.textContent = phantomMobile ? 'Open in Phantom' : 'Get ' + choice;
+    fallback.href = link || selected.site;
+    fallback.textContent = link ? 'Open in ' + choice : 'Get ' + choice;
+    get('wallet-prompt').textContent = mobile
+      ? 'Choose a wallet. If the app opens, continue in its browser.'
+      : 'Choose a wallet';
   }
 
   function updateAccount(next = '') {
@@ -267,32 +315,37 @@
     }
   };
 
-  action.onclick = async () => {
-    if (busy) return;
+  async function connectWallet(entry, wallet) {
+    if (busy || address) return;
     busy = true;
     action.disabled = true;
+    get('wallet-status').textContent = 'Check ' + entry.name + ' to approve the connection.';
     try {
-      if (!address) {
-        const wallet = adapter(known.find(item => item.name === choice));
-        if (!wallet) { renderWallet(choice + ' was not detected in this browser.'); return; }
-        const key = await wallet.connect();
-        if (!key) throw new Error('No Solana account');
-        rememberProvider(choice);
-        session = { wallet, unsubscribe: wallet.listen(updateAccount) };
-        updateAccount(key);
-        const pending = pendingForm;
-        pendingForm = null;
-        if (pending?.form.isConnected && dialog.open) {
-          dialog.close();
-          pending.form.requestSubmit(pending.submitter);
-        }
+      const key = await wallet.connect();
+      if (!key) throw new Error('No Solana account');
+      rememberProvider(entry.name);
+      session = { wallet, unsubscribe: wallet.listen(updateAccount) };
+      updateAccount(key);
+      const pending = pendingForm;
+      pendingForm = null;
+      if (pending?.form.isConnected && dialog.open) {
+        dialog.close();
+        pending.form.requestSubmit(pending.submitter);
       }
     } catch (error) {
       renderWallet(error?.code === 4001 ? 'Connection declined.' : 'Wallet request failed. Please try again.');
     } finally {
       busy = false;
       action.disabled = false;
+      disconnect.disabled = false;
     }
+  }
+
+  action.onclick = () => {
+    const entry = known.find(item => item.name === choice);
+    const wallet = adapter(entry);
+    if (wallet) void connectWallet(entry, wallet);
+    else renderWallet(mobile ? mobileInstructions(entry) : entry.name + ' was not detected in this browser.');
   };
 
   async function rpc(method, params, signal, endpoint = rpcUrl) {
