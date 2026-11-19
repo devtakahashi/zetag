@@ -188,6 +188,10 @@
       get('profile-public').href = publicUrl(profile.tag);
     }
     draw(get('profile-avatar'), get('profile-initials'), profile?.avatar ?? '', profile?.tag ?? '');
+    const address = window.ZeTagWallet?.address;
+    if (mine && address) {
+      document.dispatchEvent(new CustomEvent('zetag:wallet-profile', { detail: { owner: address, profile } }));
+    }
   }
 
   function promptOwner(text, connected) {

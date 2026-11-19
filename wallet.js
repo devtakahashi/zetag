@@ -16,15 +16,15 @@
   const known = [
     { name: 'Jupiter', site: 'https://jup.ag/mobile' },
     {
-      name: 'Phantom', site: 'https://phantom.com/download',
+      name: 'Phantom', site: 'https://phantom.com/download', browse: 'https://phantom.app/ul/browse/',
       injected: () => window.phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null)
     },
     {
-      name: 'Solflare', site: 'https://solflare.com/',
+      name: 'Solflare', site: 'https://solflare.com/', browse: 'https://solflare.com/ul/v1/browse/',
       injected: () => window.solflare ?? (window.solana?.isSolflare ? window.solana : null)
     },
     {
-      name: 'Backpack', site: 'https://backpack.app/',
+      name: 'Backpack', site: 'https://backpack.app/', browse: 'https://backpack.app/ul/v1/browse/',
       injected: () => window.backpack?.solana ?? window.backpack ?? (window.solana?.isBackpack ? window.solana : null)
     }
   ];
@@ -95,7 +95,7 @@
       };
     }
     const injected = entry.injected?.();
-    if (!injected?.connect) return mobile ? window.ZeTagMobile?.adapter(entry.name) ?? null : null;
+    if (!injected?.connect) return null;
     return {
       connect: async () => (await injected.connect())?.publicKey?.toString() ?? injected.publicKey?.toString(),
       restore: async () => {
@@ -309,13 +309,40 @@
     }
   }
 
-  action.onclick = () => {
+  function browserLink(entry) {
+    if (!mobile || !entry.browse || location.protocol !== 'https:') return '';
+    const destination = new URL(location.href);
+    destination.searchParams.set('_wallet', entry.name);
+    return entry.browse + encodeURIComponent(destination.href) + '?ref=' + encodeURIComponent(location.origin);
+  }
+
+  action.onclick = async () => {
     const entry = known.find(item => item.name === choice);
     const wallet = adapter(entry);
-    if (wallet) void connectWallet(entry, wallet);
-    else renderWallet(mobile && entry.name === 'Jupiter'
-      ? 'Jupiter Mobile connection is being configured. You can connect from its built-in browser for now.'
-      : entry.name + ' is unavailable in this browser. Check that its extension is enabled.');
+    if (wallet) { void connectWallet(entry, wallet); return; }
+    const link = browserLink(entry);
+    if (link) {
+      get('wallet-status').textContent = 'Opening ' + entry.name + '. Tap Connect in its browser to approve.';
+      location.assign(link);
+      return;
+    }
+    if (mobile && entry.name === 'Jupiter') {
+      const status = get('wallet-status');
+      try {
+        await navigator.clipboard.writeText(location.href);
+        status.textContent = 'ZeTag link copied. Open Jupiter’s browser, paste the link, then select Jupiter and tap Connect.';
+      } catch {
+        status.textContent = 'Open this link in Jupiter’s browser, then select Jupiter and tap Connect.';
+      }
+      const url = document.createElement('input');
+      url.value = location.href;
+      url.readOnly = true;
+      url.setAttribute('aria-label', 'ZeTag link to open in Jupiter');
+      url.onclick = () => { url.focus(); url.select(); };
+      status.append(url);
+      return;
+    }
+    renderWallet(entry.name + ' was not detected. Enable its browser extension, then try Connect again.');
   };
 
   async function rpc(method, params, signal, endpoint = rpcUrl) {
@@ -361,7 +388,7 @@
       }));
       if (controller.signal.aborted) return null;
       balances[asset] = accounts.reduce((sum, item) => sum + BigInt(item.amount), 0n);
-      balance.textContent = format(balances[asset], asset);
+      balance.textContent = ZeTagTokens.formatUnits(balances[asset], asset);
       document.dispatchEvent(new Event('zetag:wallet-balance'));
       return new Set(asset === 'SOL' ? [] : accounts.map(item => item.address));
     } catch {
@@ -526,7 +553,17 @@
 
   window.dispatchEvent(new CustomEvent('wallet-standard:app-ready', { detail: api }));
   document.addEventListener('zetag:asset-changed', () => { void refresh(); });
-  window.addEventListener('load', restoreWallet, { once: true });
+  window.addEventListener('load', () => {
+    const url = new URL(location.href);
+    const requested = url.searchParams.get('_wallet');
+    if (known.some(entry => entry.name === requested)) {
+      choice = requested;
+      url.searchParams.delete('_wallet');
+      window.history.replaceState(null, '', url.href);
+      if (!dialog.open) dialog.showModal();
+      renderWallet('Tap Connect to approve in ' + choice + '.');
+    } else void restoreWallet();
+  }, { once: true });
   void restoreWallet();
   refresh();
   setInterval(() => {

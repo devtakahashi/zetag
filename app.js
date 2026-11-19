@@ -163,8 +163,7 @@ function showSend(tag = '', amount = '', note = '', linkedName = '') {
       <label for="to">Recipient tag</label>
       <input id="to" name="tag" placeholder="@recipient" maxlength="25" required>
       <label for="amount">Amount</label>
-      <button type="button" class="asset-picker" data-asset-picker></button>
-      <input id="amount" name="amount" inputmode="decimal" placeholder="0.00" required>
+      <div class="amount-field"><input id="amount" name="amount" inputmode="decimal" placeholder="0.00" required><button type="button" class="asset-picker" data-asset-picker></button></div>
       <p class="help" id="note" hidden></p>
       <button class="primary">Review payment</button>
     </form>`;
@@ -245,8 +244,7 @@ function showReceive() {
       <input id="display" name="display" maxlength="50" placeholder="Your name or business" required>
       <div id="request-fields">
         <label for="request">Amount</label>
-        <button type="button" class="asset-picker" data-asset-picker></button>
-        <input id="request" name="request" inputmode="decimal" placeholder="0.00" required>
+        <div class="amount-field"><input id="request" name="request" inputmode="decimal" placeholder="0.00" required><button type="button" class="asset-picker" data-asset-picker></button></div>
         <label for="memo">Note (optional)</label>
         <input id="memo" name="memo" maxlength="100" placeholder="What’s it for?">
       </div>
@@ -261,8 +259,10 @@ function showReceive() {
   <span class="pair-recipient"><img alt="" referrerpolicy="no-referrer" hidden><span class="badge-initials" hidden></span><span class="wallet-icon"></span></span>
 </div>
       </div>
-      <button class="primary" type="submit">Create payment link</button>
-      <button class="secondary" id="personal-editor" type="button">Create personal payment page</button>
+      <div class="payment-create-actions">
+        <button class="primary" type="submit"><span>Payment link</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15z"/></svg></button>
+        <button class="secondary" id="personal-editor" type="button"><span>Payment page</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15z"/></svg></button>
+      </div>
     </form>
     <section class="personal-result" id="personal-result" hidden>
       <h3>Your page is ready</h3>
@@ -311,7 +311,7 @@ function showReceive() {
     get('#zelle-details').hidden = enabled;
     get('#receive-title').textContent = enabled ? 'Set up your payment page' : 'Request a payment';
     get('#receive-help').textContent = enabled ? 'Share one reusable page and let the payer choose the amount.' : 'Create a link for a specific amount.';
-    submit.textContent = enabled ? 'Save payment page' : 'Create payment link';
+    submit.querySelector('span').textContent = enabled ? 'Save page' : 'Payment link';
     status.textContent = '';
     updatePreview();
   }

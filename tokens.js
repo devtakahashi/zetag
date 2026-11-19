@@ -58,7 +58,7 @@
       button.setAttribute('aria-label', button.disabled ? 'Payment token ' + symbol : 'Choose token, currently ' + symbol);
       if (!button.disabled) {
         const arrow = document.createElement('span');
-        arrow.textContent = '⌄';
+        arrow.className = 'token-chevron';
         arrow.setAttribute('aria-hidden', 'true');
         button.append(arrow);
         button.setAttribute('aria-haspopup', 'dialog');
@@ -104,8 +104,8 @@
     for (const button of options.children) {
       const symbol = button.dataset.symbol;
       const balance = window.ZeTagWallet?.balanceOf?.(symbol);
-      button.children[2].textContent = balance === null || balance === undefined ? '—' : formatUnits(balance, symbol);
-      button.children[3].textContent = symbol === selected ? '✓' : '';
+      button.children[2].textContent = balance === null || balance === undefined ? '' : formatUnits(balance, symbol);
+      button.children[3].textContent = '';
       button.setAttribute('aria-pressed', String(symbol === selected));
     }
   }

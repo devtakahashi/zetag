@@ -106,15 +106,15 @@
   const mobile = get('mobile-wallet');
   const menu = mobile.closest('details');
   const mobileProfile = menu.querySelector('summary');
-  const profileGlyph = mobileProfile.firstElementChild.cloneNode(true);
+  const profileControls = [mobileProfile, document.querySelector('.profile-link')].filter(Boolean);
+  const profileGlyphs = profileControls.map(control => control.firstElementChild.cloneNode(true));
   function showMobileAvatar(profile) {
-    if (profile && owner) {
-      mobileProfile.replaceChildren(avatar(profile, 'header-avatar'));
-      mobileProfile.setAttribute('aria-label', 'Profile @' + profile.tag);
-    } else {
-      mobileProfile.replaceChildren(profileGlyph.cloneNode(true));
-      mobileProfile.setAttribute('aria-label', 'Profile');
-    }
+    profileControls.forEach((control, i) => {
+      const claimed = profile && owner;
+      control.replaceChildren(claimed ? avatar(profile, 'header-avatar') : profileGlyphs[i].cloneNode(true));
+      control.setAttribute('aria-label', claimed ? 'Profile @' + profile.tag : 'Profile');
+      control.title = claimed ? '@' + profile.tag : 'Profile';
+    });
   }
   let owner = '';
   let pingUnread = 0;
@@ -183,7 +183,7 @@
     if (owner) {
       try { seen = new Set(JSON.parse(localStorage.getItem('zetag:seen-tx:' + owner) ?? '[]')); } catch {}
     }
-    mobile.textContent = owner ? 'Wallet' : 'Connect wallet';
+    get('mobile-wallet-label').textContent = owner ? 'Wallet' : 'Connect';
     update();
     void refreshProfile();
   });
@@ -192,6 +192,9 @@
     pingUnread = 0;
     contacts = [];
     update();
+  });
+  document.addEventListener('zetag:wallet-profile', ({ detail }) => {
+    if (detail.owner === owner) showMobileAvatar(detail.profile);
   });
   document.addEventListener('zetag:profile-session', refreshProfile);
   document.addEventListener('zetag:ping-updated', refreshProfile);

@@ -662,17 +662,156 @@ header .zetag-nav .notification-dot {
 .token-check { color: #bd9fff; }
 .token-option > small { max-width: 130px; overflow-wrap: anywhere; }
 .zepay-amount .asset-picker { margin: 0; }
-.guide-trigger { font-size: 13px; margin: 10px 0; }
-.guide-highlight { outline: 2px solid #a589ff !important; outline-offset: 5px; }
-.guide-dialog { width: min(410px, calc(100% - 24px)); padding: 24px; }
-.guide-steps { display: flex; gap: 6px; margin-top: 16px; }
-.guide-steps button { flex: 1; height: 6px; border: 0; border-radius: 4px; padding: 0; background: #47325f; }
-.guide-steps button[aria-current="step"] { background: var(--notice-violet); }
-.guide-dialog p { color: #d6c7e7; line-height: 1.65; }
-.guide-actions { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
-.guide-actions .primary { width: auto; margin: 0; flex: 1; }
-.guide-actions .text-action { flex: none; }
-.guide-dialog h3 { margin-bottom: 4px; font-size: 20px; }
 @media(max-width: 600px) {
   .token-dialog { margin: auto auto 12px; }
 }
+
+/* Compact token controls are part of their amount or balance field. */
+.amount-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #493859;
+  border-radius: 12px;
+  background: #0e0b15;
+  padding: 0 11px 0 0;
+}
+.amount-field:focus-within {
+  outline: 2px solid #a589ff;
+  outline-offset: 2px;
+}
+.amount-field > input {
+  width: 100%;
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.amount-field > input:focus-visible { outline: 0; }
+.amount-field > .asset-picker,
+.zepay-amount.amount-field > .asset-picker {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  margin: 0;
+  padding: 7px 0 7px 7px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  line-height: 1;
+}
+.asset-picker > span { display: inline-flex; align-items: center; }
+.asset-picker .token-mark { display: inline-grid; }
+.token-chevron {
+  width: 6px;
+  height: 6px;
+  margin: -3px 2px 0 3px;
+  border: solid currentColor;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+#wallet-overview .wallet-balance-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+}
+.wallet-balance-content #wallet-balance {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.wallet-balance-content .asset-picker {
+  flex: none;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  padding: 7px 0;
+}
+.token-option {
+  padding: 12px;
+  border: 1px solid #3e304e;
+  border-radius: 12px;
+  background: #1b1525;
+}
+.token-option[aria-pressed="true"] { border-color: #8c6fc4; background: #241b31; }
+.token-check {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid #806e96;
+  border-radius: 50%;
+}
+.token-option[aria-pressed="true"] .token-check { border-color: var(--notice-violet); }
+.token-option[aria-pressed="true"] .token-check::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--notice-violet);
+}
+.profile-menu-panel {
+  width: 184px;
+  padding: 6px;
+  border-color: #544164;
+  border-radius: 15px;
+  background: linear-gradient(145deg,#241a31,#17121f);
+  box-shadow: 0 12px 32px #0007;
+}
+.profile-menu-panel .account-menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 9px;
+  font-size: 14px;
+  line-height: 1.3;
+}
+.account-menu-row svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.account-menu-row .wallet-icon { width: 20px; height: 20px; flex-basis: 20px; }
+header .zetag-nav .bell-glyph { width: 24px; height: 24px; }
+.payment-create-actions {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+.payment-create-actions > button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 0;
+  padding: 12px 8px;
+  min-width: 0;
+  font-size: clamp(11px,3.2vw,14px);
+}
+.payment-create-actions svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.payment-create-actions > button > span { white-space: nowrap; }
+.payment-create-actions:has(#personal-editor[hidden]) { grid-template-columns: minmax(0,1fr); }
