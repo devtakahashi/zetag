@@ -1,18 +1,29 @@
-ZeTag header and default-avatar update
+ZeTag direct mobile connections
 
-1. Extract this ZIP.
-2. Upload style.css, index.html, profile/index.html, profile/profile.js,
-   profile/ui.js, and pay/index.html to their matching GitHub paths.
-3. Copy backend/profiles.mjs into your local ZeTag backend folder.
-   Copy pay/index.html into the local pay folder beside backend.
-4. In the VS Code terminal inside backend, run:
-   npx wrangler deploy
-5. Wait for GitHub Pages to publish, then refresh ZeTag.
+1. Extract this ZIP and upload all files to matching paths in your GitHub
+   repository. Replace existing files when prompted.
+2. The new wallet-return folder must be at the repository root, beside pay,
+   profile, wallet-mobile.js, and vendor.
+3. Copy the ZIP's pay/index.html into your local pay folder beside backend,
+   then run npx wrangler deploy from your existing backend folder.
+4. Wait for GitHub Pages to publish before testing.
 
-There is no new database migration for this update.
+Choose a wallet to highlight it, then tap Connect. Phantom, Solflare and
+Backpack now use encrypted connect links that open the app's approval screen.
+After approval, return to ZeTag. Sign-in and profile edits may open the
+wallet for a separate signature and then return to complete the request.
+Test from the same browser used to start the request. If the wallet returns
+to a different browser, go back to the starting browser and try again.
 
-On mobile and tablet the profile control shows the claimed avatar after the
-connected wallet has signed in. Switching wallets or disconnecting resets the
-control. Avatar edits refresh it. Desktop keeps the profile glyph.
-A new claim with no avatar receives a randomly selected preset, saved in D1.
-An existing avatar is retained when an update omits an avatar.
+Jupiter Mobile direct connection is pending a Reown project ID and the
+Jupiter Mobile Adapter integration. The UI reports this when selected.
+Jupiter's injected provider and Wallet Standard remain usable in compatible
+browsers. Create a project at https://dashboard.reown.com/ and supply the
+public project ID for the remaining integration.
+
+The ZIP contains no database changes. USDC/SOL token selection and live
+payments are separate pending work. This update covers wallet connection.
+
+Tests cover simulated encrypted approval callbacks for all three wallets,
+profile signatures, request replay rejection, and the selection/Connect UI.
+Installed-wallet testing on your phone is still needed after publishing.

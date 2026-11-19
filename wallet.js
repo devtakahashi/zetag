@@ -16,31 +16,20 @@
   const known = [
     { name: 'Jupiter', site: 'https://jup.ag/mobile' },
     {
-      name: 'Phantom', site: 'https://phantom.com/download', browse: 'https://phantom.app/ul/browse/',
+      name: 'Phantom', site: 'https://phantom.com/download',
       injected: () => window.phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null)
     },
     {
-      name: 'Solflare', site: 'https://solflare.com/', browse: 'https://solflare.com/ul/v1/browse/',
+      name: 'Solflare', site: 'https://solflare.com/',
       injected: () => window.solflare ?? (window.solana?.isSolflare ? window.solana : null)
     },
     {
-      name: 'Backpack', site: 'https://backpack.app/', browse: 'https://backpack.app/ul/v1/browse/',
+      name: 'Backpack', site: 'https://backpack.app/',
       injected: () => window.backpack?.solana ?? window.backpack ?? (window.solana?.isBackpack ? window.solana : null)
     }
   ];
   const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
     (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
-
-  function browseLink(entry) {
-    if (!mobile || location.protocol !== 'https:' || !entry.browse) return '';
-    return entry.browse + encodeURIComponent(location.href) + '?ref=' + encodeURIComponent(location.origin);
-  }
-
-  function mobileInstructions(entry) {
-    return entry.browse
-      ? 'Open this page inside ' + entry.name + ', then tap ' + entry.name + ' to approve the connection.'
-      : 'Open this page in the Jupiter Mobile browser, then tap Jupiter to connect.';
-  }
 
   let choice = '';
   let session = null;
@@ -106,7 +95,7 @@
       };
     }
     const injected = entry.injected?.();
-    if (!injected?.connect) return null;
+    if (!injected?.connect) return mobile ? window.ZeTagMobile?.adapter(entry.name) ?? null : null;
     return {
       connect: async () => (await injected.connect())?.publicKey?.toString() ?? injected.publicKey?.toString(),
       restore: async () => {
@@ -152,18 +141,12 @@
     }
     options.replaceChildren();
     for (const item of known) {
-      const wallet = adapter(item);
-      const link = wallet ? '' : browseLink(item);
-      const control = document.createElement(link ? 'a' : 'button');
-      if (link) {
-        control.href = link;
-        control.setAttribute('aria-label', 'Open in ' + item.name);
-      } else {
-        control.type = 'button';
-        control.setAttribute('aria-pressed', String(item.name === choice));
-      }
+      const control = document.createElement('button');
+      control.type = 'button';
       control.className = 'wallet-option';
-      control.title = item.name;
+      control.disabled = busy;
+      control.setAttribute('aria-label', item.name);
+      control.setAttribute('aria-pressed', String(item.name === choice));
       const icon = document.createElement('span');
       icon.className = 'wallet-logo wallet-logo-' + item.name.toLowerCase();
       icon.setAttribute('aria-hidden', 'true');
@@ -171,36 +154,19 @@
       label.className = 'wallet-option-label';
       label.textContent = item.name;
       control.append(icon, label);
-      control.onclick = event => {
-        const current = adapter(item);
-        if (link && !current && !busy && !address) {
-          // Follow the real link directly so the mobile OS can open the wallet app.
-          get('wallet-status').textContent = mobileInstructions(item);
-          return;
-        }
-        event.preventDefault();
+      control.onclick = () => {
         if (busy || address) return;
         choice = item.name;
-        if (current) void connectWallet(item, current);
-        else {
-          renderWallet(mobile ? mobileInstructions(item) : item.name + ' was not detected in this browser.');
-          options.querySelector('[aria-pressed="true"]')?.focus();
-        }
+        renderWallet();
+        options.querySelector('[aria-pressed="true"]')?.focus();
       };
       options.append(control);
     }
-    const selected = known.find(item => item.name === choice);
-    const available = Boolean(adapter(selected));
-    const link = browseLink(selected);
-    action.hidden = Boolean(address) || !available;
+    action.textContent = 'Connect';
+    action.hidden = Boolean(address);
     action.disabled = busy;
-
-    fallback.hidden = Boolean(address) || available;
-    fallback.href = link || selected.site;
-    fallback.textContent = link ? 'Open in ' + choice : 'Get ' + choice;
-    get('wallet-prompt').textContent = mobile
-      ? 'Choose a wallet. If the app opens, continue in its browser.'
-      : 'Choose a wallet';
+    fallback.hidden = true;
+    get('wallet-prompt').textContent = 'Choose a wallet, then tap Connect.';
   }
 
   function updateAccount(next = '') {
@@ -247,10 +213,10 @@
     get address() { return address; },
     get balance() { return balanceUnits; },
     get balanceText() { return balanceUnits === null ? '' : format(balanceUnits); },
-    async signMessage(value) {
+    async signMessage(value, completion) {
       const signer = address;
       if (!session || !signer) throw new Error('Connect your wallet first.');
-      const bytes = await session.wallet.sign(new TextEncoder().encode(value), signer);
+      const bytes = await session.wallet.sign(new TextEncoder().encode(value), signer, completion);
       if (signer !== address || bytes?.length !== 64) throw new Error('Wallet changed or returned an invalid signature.');
       return btoa(String.fromCharCode(...bytes));
     }
@@ -345,7 +311,9 @@
     const entry = known.find(item => item.name === choice);
     const wallet = adapter(entry);
     if (wallet) void connectWallet(entry, wallet);
-    else renderWallet(mobile ? mobileInstructions(entry) : entry.name + ' was not detected in this browser.');
+    else renderWallet(mobile && entry.name === 'Jupiter'
+      ? 'Jupiter Mobile connection is being configured. You can connect from its built-in browser for now.'
+      : entry.name + ' is unavailable in this browser. Check that its extension is enabled.');
   };
 
   async function rpc(method, params, signal, endpoint = rpcUrl) {

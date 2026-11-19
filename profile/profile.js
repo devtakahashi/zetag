@@ -245,7 +245,7 @@
     try {
       const challenge = await call('/login/challenge', { wallet: address });
       if (wallet.address !== address) return null;
-      const signature = await wallet.signMessage(challenge.message);
+      const signature = await wallet.signMessage(challenge.message, { endpoint: '/pay/_profiles/login', nonce: challenge.nonce });
       const signed = await call('/login', { nonce: challenge.nonce, signature });
       document.dispatchEvent(new Event('zetag:profile-session'));
       return signed;
@@ -339,7 +339,7 @@
       const challenge = await call('/challenge', { wallet: address, tag, avatar, bio: bio.value.trim() });
       if (wallet.address !== address) return;
       editStatus.textContent = 'Approve the profile signature in your wallet.';
-      const signature = await wallet.signMessage(challenge.message);
+      const signature = await wallet.signMessage(challenge.message, { endpoint: '/pay/_profiles', nonce: challenge.nonce });
       const result = await call('', { nonce: challenge.nonce, signature });
       if (id !== generation) return;
       show(result.profile);
