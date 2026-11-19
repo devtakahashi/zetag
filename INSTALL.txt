@@ -1,29 +1,58 @@
-ZeTag direct mobile connections
+ZeTag combined update
 
-1. Extract this ZIP and upload all files to matching paths in your GitHub
-   repository. Replace existing files when prompted.
-2. The new wallet-return folder must be at the repository root, beside pay,
-   profile, wallet-mobile.js, and vendor.
-3. Copy the ZIP's pay/index.html into your local pay folder beside backend,
-   then run npx wrangler deploy from your existing backend folder.
-4. Wait for GitHub Pages to publish before testing.
+This package combines the current wallet connection fix with USDC/SOL
+selection, the outlined wallet icon, violet notification dot and read ticks,
+and a guided introduction to ZeTag.
 
-Choose a wallet to highlight it, then tap Connect. Phantom, Solflare and
-Backpack now use encrypted connect links that open the app's approval screen.
-After approval, return to ZeTag. Sign-in and profile edits may open the
-wallet for a separate signature and then return to complete the request.
-Test from the same browser used to start the request. If the wallet returns
-to a different browser, go back to the starting browser and try again.
+LOCAL FILES AND CLOUDFLARE
+1. Extract the ZIP.
+2. Copy profiles.mjs, worker.mjs and payment-assets-schema.sql from its
+   backend folder into your existing local backend folder.
+3. Copy pay/index.html into your local pay folder beside backend.
+4. In VS Code's terminal inside backend, run this command and wait for success:
 
-Jupiter Mobile direct connection is pending a Reown project ID and the
-Jupiter Mobile Adapter integration. The UI reports this when selected.
-Jupiter's injected provider and Wallet Standard remain usable in compatible
-browsers. Create a project at https://dashboard.reown.com/ and supply the
-public project ID for the remaining integration.
+   npx wrangler d1 execute zetag-requests --remote --file=payment-assets-schema.sql
 
-The ZIP contains no database changes. USDC/SOL token selection and live
-payments are separate pending work. This update covers wallet connection.
+5. Then run:
 
-Tests cover simulated encrypted approval callbacks for all three wallets,
-profile signatures, request replay rejection, and the selection/Connect UI.
-Installed-wallet testing on your phone is still needed after publishing.
+   npx wrangler deploy
+
+This migration adds a separate table recording the token of new payment
+requests. Older requests default to USDC. The migration can be repeated.
+
+GITHUB FRONTEND
+Upload the ZIP's root files and the contents of profile, pay, wallet-return,
+vendor, and assets/icons to their matching GitHub paths. Keep existing
+avatar and emoji folders in place. Wait for GitHub Pages to publish.
+
+CHECK THE RESULT
+Open ZeTag, connect a wallet, and use the USDC/SOL control in the wallet.
+Check each token's balance. Select a token in Send or Receive and create a
+request. Open the copied link and confirm its amount and token.
+Open "How to use ZeTag" from the homepage, profile menu or Notifications.
+
+NOTIFICATIONS AND PING
+The bell uses a violet dot for new Pings or recent loaded wallet activity.
+Unread Ping counts stay beside each contact's tag. One muted tick means
+delivered. Two violet ticks mean read. Transaction read state is local to
+the current browser. History covers recent loaded transactions.
+SOL history reports net balance changes, including network fees and rent.
+
+WALLET CONNECTION
+Select a wallet, then tap Connect. Phantom, Solflare and Backpack use
+encrypted app connections and return to ZeTag for profile sign-in or edits.
+Keep using the browser where the request started.
+Jupiter's external mobile connection still needs a Reown project ID and its
+adapter integration. Its injected and Wallet Standard connections are
+available in compatible browsers.
+
+PAYMENTS
+USDC and SOL selection, balances, payment link creation and payment review
+are included. Live transfers remain unavailable.
+
+VALIDATION
+Automated tests cover token precision, old USDC links, saved SOL requests,
+mocked token balances, encrypted wallet callbacks, and selection/Connect.
+Installed wallet tests and visual checks on your phone are still needed
+after publishing. An RPC provider configured as the Worker's SOLANA_RPC_URL
+can be used when public RPC access is unavailable.

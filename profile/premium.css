@@ -1,6 +1,6 @@
 :root {
-  --ping-read: #f03a8d;
-  --ping-badge: #991651;
+  --ping-read: var(--notice-violet);
+  --ping-badge: var(--notice-violet);
   --ping-time: #bdaccd;
   --surface-raised: #241a34;
   --surface-line: #544068;

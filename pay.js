@@ -27,22 +27,31 @@
       status.textContent = 'This payment request link is missing information or is invalid.';
       return;
     }
+    ZeTagTokens.select(request.asset);
+    const picker = get('pay-asset');
+    picker.disabled = !personal;
+    if (!personal) picker.dataset.fixedAsset = request.asset;
+    ZeTagTokens.render();
     applyBranding(document.querySelector('.brand-pair'), { ...fields, name: request.name, tag: request.tag });
     get('pay-title').textContent = personal ? 'Pay ' + request.name : 'Payment request';
     const amount = get('pay-amount');
     amount.parentElement.hidden = personal;
-    amount.textContent = personal ? '' : formatAmount(request.amount);
+    amount.textContent = personal ? '' : formatAmount(request.amount, request.asset);
     get('pay-note').textContent = request.note;
     get('pay-note').hidden = !request.note;
     get('pay-name').textContent = request.name;
     get('pay-tag').textContent = '@' + request.tag;
+    get('pay-request-asset').textContent = request.asset;
     const button = get('pay-button');
-    button.textContent = personal ? 'Pay USDC' : 'Pay ' + amount.textContent + ' USDC';
+    button.textContent = personal ? 'Pay ' + ZeTagTokens.selected : 'Pay ' + amount.textContent + ' ' + request.asset;
     get('pay-custom').hidden = !personal;
     if (personal) get('pay-custom-amount').oninput = event => {
-      const total = normalizeAmount(event.target.value);
-      button.textContent = total ? 'Pay ' + formatAmount(total) + ' USDC' : 'Pay USDC';
+      const total = normalizeAmount(event.target.value, ZeTagTokens.selected);
+      button.textContent = total ? 'Pay ' + formatAmount(total, ZeTagTokens.selected) + ' ' + ZeTagTokens.selected : 'Pay ' + ZeTagTokens.selected;
     };
+    document.addEventListener('zetag:asset-changed', () => {
+      if (personal) get('pay-custom-amount').dispatchEvent(new Event('input'));
+    });
     get('pay-details').hidden = false;
     status.hidden = true;
     ZeTagSaved.setRecent(new URL(location.href));

@@ -8,6 +8,7 @@ const params = new URLSearchParams(location.search);
 const { tagPattern, normalizeAmount, formatAmount, branding, applyBranding } = ZeTagRequest;
 let profile = null;
 let connectedAddress = '';
+const tokens = ZeTagTokens;
 
 function cleanTag(value) {
   return String(value ?? '').trim().toLowerCase().replace(/^@/, '');
@@ -38,8 +39,8 @@ function setMode(receiving) {
   document.querySelector('#hero-title').textContent = receiving ? 'Receive money.' : 'Send money.';
   document.querySelector('#hero-accent').textContent = receiving ? 'Share your tag.' : 'Pay by tag.';
   document.querySelector('#hero-copy').textContent = receiving
-    ? 'Create a ZeTag payment link to request USDC on Solana, wherever you’re based. Eligible US members can use a linked Zelle Tag once linking is available.'
-    : 'Send USDC on Solana by tag. Use a ZeTag handle from anywhere or an eligible US recipient’s Zelle Tag once linking is available.';
+    ? 'Create a ZeTag payment link to request USDC or SOL on Solana, wherever you’re based. Eligible US members can use a linked Zelle Tag once linking is available.'
+    : 'Send USDC or SOL on Solana by tag. Use a ZeTag handle from anywhere or an eligible US recipient’s Zelle Tag once linking is available.';
 }
 
 function text(selector, value) {
@@ -57,7 +58,7 @@ async function paymentLink(request) {
     const response = await fetch(new URL('_requests', directory), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tag: request.tag, amount: request.amount, name: request.name, note: request.note }),
+      body: JSON.stringify({ tag: request.tag, amount: request.amount, name: request.name, note: request.note, asset: request.asset ?? 'USDC' }),
       signal: AbortSignal.timeout(10000)
     });
     if (!response.ok) throw new Error('Could not save payment request');
@@ -77,7 +78,8 @@ function openShare(request, url) {
   document.querySelector('#share-title').textContent = personal ? 'Your payment page is ready' : 'Payment request ready';
   const amount = document.querySelector('#share-amount');
   amount.parentElement.hidden = personal;
-  amount.textContent = personal ? '' : formatAmount(request.amount);
+  amount.textContent = personal ? '' : formatAmount(request.amount, request.asset);
+  document.querySelector('#share-asset').textContent = request.asset ?? 'USDC';
   document.querySelector('#share-preview').textContent = personal ? 'Preview page' : 'Preview as payer';
   document.querySelector('#share-edit').textContent = personal ? 'Edit page' : 'Edit request';
   const note = document.querySelector('#share-note');
@@ -155,16 +157,18 @@ document.querySelector('#share-edit').onclick = () => {
 function showSend(tag = '', amount = '', note = '', linkedName = '') {
   setMode(false);
   panel.innerHTML = `
-    <h2>Send USDC</h2>
+    <h2>Send <span data-asset-symbol>USDC</span></h2>
     <p class="help">Enter a ZeTag or a linked Zelle Tag. Sending is currently unavailable.</p>
     <form>
       <label for="to">Recipient tag</label>
       <input id="to" name="tag" placeholder="@recipient" maxlength="25" required>
-      <label for="amount">Amount in USDC</label>
+      <label for="amount">Amount</label>
+      <button type="button" class="asset-picker" data-asset-picker></button>
       <input id="amount" name="amount" inputmode="decimal" placeholder="0.00" required>
       <p class="help" id="note" hidden></p>
       <button class="primary">Review payment</button>
     </form>`;
+  tokens.render();
   panel.querySelector('#to').value = tag;
   panel.querySelector('#amount').value = amount;
   if (linkedName && tag) {
@@ -181,17 +185,17 @@ function showSend(tag = '', amount = '', note = '', linkedName = '') {
     event.preventDefault();
     const values = new FormData(event.currentTarget);
     const target = cleanTag(values.get('tag'));
-    const total = normalizeAmount(values.get('amount'));
+    const total = normalizeAmount(values.get('amount'), tokens.selected);
     if (!tagPattern.test(target)) {
       status.textContent = 'Enter a valid recipient tag.';
       return;
     }
     if (!total) {
-      status.textContent = 'Enter a positive USDC amount, such as 0.23 or 1,000.';
+      status.textContent = 'Enter a positive ' + tokens.selected + ' amount with up to ' + tokens.assets[tokens.selected].decimals + ' decimal places.';
       return;
     }
     if (!walletAllows(event.currentTarget)) return;
-    status.textContent = 'USDC transfers are currently unavailable.';
+    status.textContent = tokens.selected + ' transfers are currently unavailable.';
   });
 }
 
@@ -240,7 +244,8 @@ function showReceive() {
       <label for="display">Display name</label>
       <input id="display" name="display" maxlength="50" placeholder="Your name or business" required>
       <div id="request-fields">
-        <label for="request">Amount in USDC</label>
+        <label for="request">Amount</label>
+        <button type="button" class="asset-picker" data-asset-picker></button>
         <input id="request" name="request" inputmode="decimal" placeholder="0.00" required>
         <label for="memo">Note (optional)</label>
         <input id="memo" name="memo" maxlength="100" placeholder="What’s it for?">
@@ -271,6 +276,7 @@ function showReceive() {
       </div>
     </section>
     <details id="zelle-details"><summary>Have a US Zelle Tag?</summary>Zelle Tag linking is currently unavailable.</details>`;
+  tokens.render();
   const get = selector => panel.querySelector(selector);
   const form = get('form');
   const handle = get('#handle');
@@ -352,13 +358,13 @@ function showReceive() {
     if (form.dataset.creating || imageBusy) return;
     const tag = cleanTag(handle.value);
     const name = display.value.trim();
-    const amount = personal ? '' : normalizeAmount(amountInput.value);
+    const amount = personal ? '' : normalizeAmount(amountInput.value, tokens.selected);
     if (!tagPattern.test(tag) || !name) {
       status.textContent = 'Choose a valid tag and enter a display name.';
       return;
     }
     if (!personal && !amount) {
-      status.textContent = 'Enter a positive USDC amount, such as 0.23 or 1,000.';
+      status.textContent = 'Enter a positive ' + tokens.selected + ' amount with up to ' + tokens.assets[tokens.selected].decimals + ' decimal places.';
       return;
     }
     if (!walletAllows(form, event.submitter ?? submit)) return;
@@ -368,7 +374,7 @@ function showReceive() {
     } catch {
       status.textContent = 'Your browser blocked local storage. You can still share this link.';
     }
-    const request = { ...profile, amount, note: personal ? '' : get('#memo').value.trim() };
+    const request = { ...profile, asset: tokens.selected, amount, note: personal ? '' : get('#memo').value.trim() };
     if (personal) {
       const url = new URL('./pay/', location.href);
       url.hash = new URLSearchParams({ ...request, profile: '1' }).toString();
@@ -446,10 +452,13 @@ profile = readProfile();
 sendTab.onclick = () => showSend();
 receiveTab.onclick = showReceive;
 const requestedTag = cleanTag(params.get('tag'));
-const requestedAmount = normalizeAmount(params.get('amount'));
+const requestedAsset = params.get('asset') || 'USDC';
+if (Object.hasOwn(tokens.assets, requestedAsset)) tokens.select(requestedAsset);
+const requestedAmount = normalizeAmount(params.get('amount'), tokens.selected);
 showSend(
   tagPattern.test(requestedTag) ? requestedTag : '',
   requestedAmount,
   (params.get('note') ?? '').slice(0, 100),
   (params.get('name') ?? '').slice(0, 50)
 );
+if (params.get('mode') === 'receive') showReceive();

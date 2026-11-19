@@ -27,16 +27,21 @@ async function create(request, env, url) {
   body += decoder.decode();
   let input;
   try { input = JSON.parse(body); } catch { return json({ error: 'Invalid JSON' }, 400); }
-  const { tag, amount, name, note = '' } = input ?? {};
+  const { tag, amount, name, note = '', asset = 'USDC' } = input ?? {};
   if (typeof tag !== 'string' || !/^[a-z0-9][a-z0-9_-]{2,23}$/.test(tag) ||
-      typeof amount !== 'string' || !/^[0-9]+(?:\.[0-9]{1,2})?$/.test(amount) || !/[1-9]/.test(amount) ||
+      !['USDC','SOL'].includes(asset) ||
+      typeof amount !== 'string' || amount.length > 40 ||
+      !new RegExp('^[0-9]+(?:\\.[0-9]{1,' + (asset === 'SOL' ? 9 : 6) + '})?$').test(amount) || !/[1-9]/.test(amount) ||
       typeof name !== 'string' || !name.trim() || name.length > 50 ||
       typeof note !== 'string' || note.length > 100) return json({ error: 'Invalid payment request' }, 400);
   const label = amount.length <= 24 ? amount : 'usdc';
   const id = crypto.randomUUID().replaceAll('-', '').slice(0, 20);
   const slug = [tag, label, id].join('-');
-  await env.DB.prepare('INSERT INTO payment_requests (slug, tag, amount, name, note) VALUES (?, ?, ?, ?, ?)')
-    .bind(slug, tag, amount, name, note).run();
+  await env.DB.batch([
+    env.DB.prepare('INSERT INTO payment_requests (slug, tag, amount, name, note) VALUES (?, ?, ?, ?, ?)')
+      .bind(slug, tag, amount, name, note),
+    env.DB.prepare('INSERT INTO payment_request_assets (slug, asset) VALUES (?, ?)').bind(slug, asset)
+  ]);
   return json({ slug }, 201);
 }
 
@@ -52,7 +57,8 @@ export default {
       if (url.pathname.startsWith('/pay/_requests/')) {
         const slug = url.pathname.slice('/pay/_requests/'.length);
         if (!slugPattern.test(slug)) return json({ error: 'Request not found' }, 404);
-        const record = await env.DB.prepare('SELECT tag, amount, name, note FROM payment_requests WHERE slug = ?')
+        const record = await env.DB.prepare(`SELECT p.tag, p.amount, p.name, p.note, COALESCE(a.asset, 'USDC') AS asset
+          FROM payment_requests p LEFT JOIN payment_request_assets a ON a.slug = p.slug WHERE p.slug = ?`)
           .bind(slug).first();
         return record ? json(record) : json({ error: 'Request not found' }, 404);
       }

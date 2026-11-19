@@ -36,7 +36,7 @@
   let address = '';
   let request;
   let balanceRequest;
-  let balanceUnits = null;
+  const balances = { USDC: null, SOL: null };
   let busy = false;
   let pendingForm = null;
   let restoring = false;
@@ -174,6 +174,7 @@
     if (next === address) return;
     request?.abort();
     address = next;
+    balances.USDC = balances.SOL = null;
     const identity = get('wallet-identity');
     if (identity) { identity.hidden = true; identity.replaceChildren(); }
     if (!address) {
@@ -211,8 +212,9 @@
 
   window.ZeTagWallet = Object.freeze({
     get address() { return address; },
-    get balance() { return balanceUnits; },
-    get balanceText() { return balanceUnits === null ? '' : format(balanceUnits); },
+    get balance() { return balances[ZeTagTokens.selected]; },
+    balanceOf(asset) { return balances[asset] ?? null; },
+    get balanceText() { const value = balances[ZeTagTokens.selected]; return value === null ? '' : format(value); },
     async signMessage(value, completion) {
       const signer = address;
       if (!session || !signer) throw new Error('Connect your wallet first.');
@@ -242,7 +244,7 @@
     } else identity.replaceChildren();
   });
   document.addEventListener('zetag:profile-session', () => {
-    if (address && balanceUnits === null) void refresh();
+    if (address && balances[ZeTagTokens.selected] === null) void refresh();
   });
   get('history-button').onclick = () => history.showModal();
   historyAction.onclick = () => {
@@ -329,18 +331,27 @@
     return payload.result;
   }
 
-  async function loadBalance(owner, controller) {
+  async function loadBalance(owner, controller, asset) {
     const status = get('wallet-balance-status');
     const balance = get('wallet-balance');
     balance.textContent = 'Loading…';
     status.textContent = '';
     const providers = [...new Set([rpcUrl, 'https://solana-rpc.publicnode.com'])].map(endpoint => async signal => {
+      if (asset === 'SOL') {
+        const result = await rpc('getBalance', [owner, { commitment: 'confirmed' }], signal, endpoint);
+        if (!Number.isSafeInteger(result.value) || result.value < 0) throw new Error('Invalid SOL balance');
+        return [{ address: owner, amount: String(result.value) }];
+      }
       const result = await rpc('getTokenAccountsByOwner', [owner, { mint: usdc }, {
         encoding: 'jsonParsed', commitment: 'confirmed'
       }], signal, endpoint);
       return result.value.map(item => ({ address: item.pubkey, amount: item.account.data.parsed.info.tokenAmount.amount }));
     });
-    if (window.ZeTagUI) providers.push(async signal => (await window.ZeTagUI.api('/_balance', null, signal)).accounts);
+    if (window.ZeTagUI) providers.push(async signal => {
+      const data = await window.ZeTagUI.api('/_balance?asset=' + asset, null, signal);
+      if (asset === 'SOL') return [{ address: owner, amount: data.amount }];
+      return data.accounts;
+    });
     try {
       const accounts = await Promise.any(providers.map(async provider => {
         const result = await provider(AbortSignal.any([controller.signal, AbortSignal.timeout(6500)]));
@@ -349,26 +360,32 @@
         return result;
       }));
       if (controller.signal.aborted) return null;
-      balanceUnits = accounts.reduce((sum, item) => sum + BigInt(item.amount), 0n);
-      balance.textContent = format(balanceUnits);
+      balances[asset] = accounts.reduce((sum, item) => sum + BigInt(item.amount), 0n);
+      balance.textContent = format(balances[asset], asset);
       document.dispatchEvent(new Event('zetag:wallet-balance'));
-      return new Set(accounts.map(item => item.address));
+      return new Set(asset === 'SOL' ? [] : accounts.map(item => item.address));
     } catch {
       if (controller.signal.aborted) return null;
       balance.textContent = 'Unavailable';
-      status.textContent = 'Could not load the USDC balance. Refresh to try again.';
+      status.textContent = 'Could not load the ' + asset + ' balance. Refresh to try again.';
       return null;
     }
   }
 
-  function format(amount) {
-    const [whole, fraction] = amount.toString().padStart(7, '0').replace(/(.{6})$/, '.$1').split('.');
-    return BigInt(whole).toLocaleString('en-US') + '.' + fraction.replace(/0+$/, '').padEnd(2, '0') + ' USDC';
+  function format(amount, asset = ZeTagTokens.selected) {
+    return ZeTagTokens.formatUnits(amount, asset) + ' ' + asset;
   }
 
-  function deltaFor(tx, owner, accounts) {
+  function deltaFor(tx, owner, accounts, asset) {
     if (!tx?.meta || tx.meta.err) return 0n;
     const keys = tx.transaction.message.accountKeys;
+    if (asset === 'SOL') {
+      const index = keys.findIndex(key => (key.pubkey ?? key) === owner);
+      const before = tx.meta.preBalances?.[index];
+      const after = tx.meta.postBalances?.[index];
+      if (!Number.isSafeInteger(before) || !Number.isSafeInteger(after)) throw new Error('Invalid SOL history');
+      return BigInt(after) - BigInt(before);
+    }
     const sum = balances => (balances ?? []).reduce((total, item) => {
       const tokenAccount = keys[item.accountIndex]?.pubkey;
       return item.mint === usdc && (item.owner === owner || (!item.owner && accounts.has(tokenAccount)))
@@ -378,17 +395,17 @@
     return sum(tx.meta.postTokenBalances) - sum(tx.meta.preTokenBalances);
   }
 
-  function openReceipt({ signature, blockTime }, amount, inbound) {
-    const direction = inbound ? 'Received' : 'Sent';
+  function openReceipt({ signature, blockTime }, amount, inbound, asset) {
+    const direction = asset === 'SOL' ? (inbound ? 'Balance increase' : 'Balance decrease') : (inbound ? 'Received' : 'Sent');
     const date = blockTime ? new Date(blockTime * 1000) : null;
     const url = 'https://explorer.solana.com/tx/' + encodeURIComponent(signature);
     const receipt = get('receipt-dialog');
     const text = get('receipt-text');
     const feedback = get('receipt-feedback');
-    get('receipt-amount').textContent = direction + ' ' + format(amount);
+    get('receipt-amount').textContent = direction + ' ' + format(amount, asset);
     get('receipt-date').textContent = date ? date.toLocaleString() : 'Date unavailable';
     get('receipt-link').href = url;
-    text.value = ['Solana USDC transaction receipt', direction + ' ' + format(amount), date?.toISOString(), url].filter(Boolean).join('\n');
+    text.value = ['Solana ' + asset + ' balance-change receipt', direction + ' ' + format(amount, asset), date?.toISOString(), url].filter(Boolean).join('\n');
     text.hidden = true;
     feedback.textContent = '';
     get('receipt-copy').onclick = async () => {
@@ -412,7 +429,8 @@
     request = controller;
     const signal = controller.signal;
     const owner = address;
-    balanceUnits = null;
+    const asset = ZeTagTokens.selected;
+    balances[asset] = null;
     document.dispatchEvent(new Event('zetag:wallet-balance'));
     const status = get('wallet-data-status');
     const historyStatus = get('history-status');
@@ -420,16 +438,19 @@
     list.replaceChildren();
     for (const id of ['wallet-balance','wallet-received','wallet-sent']) get(id).textContent = '—';
     historyAction.textContent = owner ? 'Refresh' : 'Connect Wallet';
-    historyStatus.textContent = owner ? 'Loading recent USDC activity…' : 'Connect a Solana wallet to view recent USDC activity.';
+    historyStatus.textContent = owner ? 'Loading recent ' + asset + ' activity…' : 'Connect a Solana wallet to view recent activity.';
+    get('wallet-balance-label').textContent = asset + ' balance';
+    get('wallet-received-label').textContent = asset === 'SOL' ? 'Recent increases' : 'Recent received';
+    get('wallet-sent-label').textContent = asset === 'SOL' ? 'Recent decreases' : 'Recent sent';
     if (!owner) {
       get('wallet-balance').textContent = 'Not connected';
       status.textContent = '';
       get('wallet-balance-status').textContent = '';
       return;
     }
-    status.textContent = 'Loading recent USDC activity…';
+    status.textContent = 'Loading recent ' + asset + ' activity…';
     balanceRequest = new AbortController();
-    const accounts = await loadBalance(owner, balanceRequest);
+    const accounts = await loadBalance(owner, balanceRequest, asset);
     if (request !== controller) return;
     const byAccount = accounts ?? new Set();
     const timeout = setTimeout(() => controller.abort(), 25000);
@@ -453,7 +474,7 @@
         results.forEach((result, index) => {
           if (result.status !== 'fulfilled' || !result.value) { missing = true; return; }
           const item = chunk[index];
-          const change = deltaFor(result.value, owner, byAccount);
+          const change = deltaFor(result.value, owner, byAccount, asset);
           if (!change) return;
           const inbound = change > 0n;
           const amount = inbound ? change : -change;
@@ -464,21 +485,21 @@
           link.target = '_blank';
           link.rel = 'noopener noreferrer';
           const label = document.createElement('span');
-          label.textContent = inbound ? 'Received' : 'Sent';
+          label.textContent = asset === 'SOL' ? (inbound ? 'Balance increase' : 'Balance decrease') : (inbound ? 'Received' : 'Sent');
           if (item.blockTime) {
             const date = document.createElement('small');
             date.textContent = new Date(item.blockTime * 1000).toLocaleString();
             label.append(date);
           }
-          link.append(label, (inbound ? '+' : '−') + format(amount));
+          link.append(label, (inbound ? '+' : '−') + format(amount, asset));
           row.append(link);
           if (item.confirmationStatus === 'finalized' || item.confirmationStatus === 'confirmed') {
-            transactions.push({ signature: item.signature, amount: format(amount), inbound });
+            transactions.push({ signature: item.signature, amount: format(amount, asset), inbound });
             const receiptButton = document.createElement('button');
             receiptButton.type = 'button';
             receiptButton.className = 'receipt-button';
             receiptButton.textContent = 'Receipt';
-            receiptButton.onclick = () => openReceipt(item, amount, inbound);
+            receiptButton.onclick = () => openReceipt(item, amount, inbound, asset);
             row.append(receiptButton);
           }
           list.append(row);
@@ -486,14 +507,14 @@
       }
       if (request !== controller) return;
       document.dispatchEvent(new CustomEvent('zetag:wallet-activity', { detail: { owner, transactions } }));
-      const scope = (accounts ? '' : 'Wallet address only. ') + 'Totals cover the latest ' + recent.length + ' candidate transactions from the wallet and up to four current USDC accounts.';
+      const scope = (accounts ? '' : 'Wallet address only. ') + 'Totals cover the latest ' + recent.length + ' candidate transactions from the wallet and up to four current USDC accounts.' + (asset === 'SOL' ? ' SOL changes include network fees and account rent.' : '');
       status.textContent = missing ? 'Some transaction data was unavailable. Refresh to retry.' : scope;
       if (!missing) {
         get('wallet-received').textContent = format(received);
         get('wallet-sent').textContent = format(sent);
       }
       historyStatus.textContent = missing ? status.textContent : list.children.length
-        ? scope : 'No USDC balance changes found in the recent transactions checked.';
+        ? scope : 'No balance changes found in the recent transactions checked.';
     } catch {
       if (request !== controller) return;
       status.textContent = historyStatus.textContent = 'Could not load transaction history. Try refreshing.';
@@ -504,6 +525,7 @@
   }
 
   window.dispatchEvent(new CustomEvent('wallet-standard:app-ready', { detail: api }));
+  document.addEventListener('zetag:asset-changed', () => { void refresh(); });
   window.addEventListener('load', restoreWallet, { once: true });
   void restoreWallet();
   refresh();

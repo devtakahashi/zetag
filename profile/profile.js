@@ -559,10 +559,16 @@
   };
   function showBalance() {
     const wallet = window.ZeTagWallet;
-    get('zepay-available').textContent = !wallet?.address ? 'Connect a wallet to see your available USDC.'
+    get('zepay-available').textContent = !wallet?.address ? 'Connect a wallet to see your balance.'
       : wallet.balanceText ? 'Available ' + wallet.balanceText : 'Available balance could not be verified.';
   }
   document.addEventListener('zetag:wallet-balance', showBalance);
+  document.addEventListener('zetag:asset-changed', () => {
+    showBalance();
+    payStatus.textContent = '';
+    if (pay.open && !payForm.hidden) return;
+    if (pay.open) get('zepay-back').click();
+  });
   get('profile-pay').onclick = () => {
     if (!viewingPublic) { finder.focus(); return; }
     if (!current) return;
@@ -584,20 +590,19 @@
   payForm.onsubmit = event => {
     event.preventDefault();
     const amount = payAmount.value.trim();
-    if (!/^\d+(?:\.\d{1,6})?$/.test(amount) || !/[1-9]/.test(amount)) {
-      payStatus.textContent = 'Enter a USDC amount greater than zero.';
+    if (!ZeTagTokens.normalize(amount, ZeTagTokens.selected)) {
+      payStatus.textContent = 'Enter a positive ' + ZeTagTokens.selected + ' amount with up to ' + ZeTagTokens.assets[ZeTagTokens.selected].decimals + ' decimal places.';
       return;
     }
-    const [whole, decimals = ''] = amount.split('.');
-    const units = BigInt(whole + decimals.padEnd(6, '0'));
+    const units = ZeTagTokens.units(amount);
     const balance = window.ZeTagWallet?.balance;
     if (balance !== null && balance !== undefined && units > balance) {
-      payStatus.textContent = 'This amount exceeds your available USDC balance.';
+      payStatus.textContent = 'This amount exceeds your available balance.';
       return;
     }
     const purpose = new FormData(payForm).get('purpose');
     const note = payNote.value.trim();
-    get('zepay-summary').textContent = amount + ' USDC to @' + current.tag + (purpose ? ' · ' + purpose : '') + (note ? ' · ' + note : '');
+    get('zepay-summary').textContent = amount + ' ' + ZeTagTokens.selected + ' to @' + current.tag + (purpose ? ' · ' + purpose : '') + (note ? ' · ' + note : '');
     payForm.hidden = true;
     get('zepay-review').hidden = false;
     get('zepay-back').focus();

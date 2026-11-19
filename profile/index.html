@@ -6,24 +6,25 @@
   <meta name="description" content="Claim a ZeTag and make it yours.">
   <title>Profile | ZeTag</title>
   <link rel="icon" type="image/png" href="../zetag-icon.png">
-  <link rel="stylesheet" href="../style.css?v=avatar-header-3">
+  <link rel="stylesheet" href="../style.css?v=complete4">
   <link rel="stylesheet" href="profile.css">
-  <script src="../profile/ui.js?v=avatar-header-3" defer></script>
-  <script src="profile.js?v=direct1" defer></script>
+  <script src="../tokens.js?v=complete4" defer></script>
+<script src="../profile/ui.js?v=complete4" defer></script>
+  <script src="profile.js?v=complete4" defer></script>
   <script src="../vendor/nacl-fast.js" defer></script>
-<script src="../wallet-mobile.js?v=direct1" defer></script>
-<script src="../wallet.js?v=direct1" defer></script>
+<script src="../wallet-mobile.js?v=complete4" defer></script>
+<script src="../wallet.js?v=complete4" defer></script>
 <link rel="stylesheet" href="../profile/profile.css">
-<link rel="stylesheet" href="../profile/premium.css?v=ping2">
+<link rel="stylesheet" href="../profile/premium.css?v=complete4">
 </head>
 <body>
 <header>
   <a class="brand" href="../"><span class="brand-mark" aria-hidden="true"></span>ZeTag</a>
   <div class="wallet-tools zetag-nav">
-    <button class="wallet-button nav-icon" id="notifications-button" type="button" aria-label="Notifications" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-11 12a2 2 0 0 0 4 0"/></svg><span class="count-badge nav-count" hidden></span></button>
+    <button class="wallet-button nav-icon" id="notifications-button" type="button" aria-label="Notifications" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-11 12a2 2 0 0 0 4 0"/></svg><span class="notification-dot nav-count" aria-hidden="true" hidden></span></button>
     <a class="wallet-button nav-icon profile-link" href="../profile/" aria-label="Profile" title="Profile"><svg class="account-glyph" viewBox="0 0 28 28" aria-hidden="true"><circle cx="10" cy="6" r="3.5"/><path d="M3 23v-5a7 7 0 0 1 7-7h1M13 15h-3a2 2 0 0 0 0 4h1a2 2 0 0 1 0 4H8m2-10v2m0 8v2m12-12v8m-4-4h8"/></svg></a>
     <details class="profile-menu"><summary class="wallet-button nav-icon" aria-label="Profile"><svg class="account-glyph" viewBox="0 0 28 28" aria-hidden="true"><circle cx="10" cy="6" r="3.5"/><path d="M3 23v-5a7 7 0 0 1 7-7h1M13 15h-3a2 2 0 0 0 0 4h1a2 2 0 0 1 0 4H8m2-10v2m0 8v2m12-12v8m-4-4h8"/></svg></summary>
-      <div class="profile-menu-panel"><a href="../profile/">My profile</a><button type="button" id="mobile-wallet">Connect wallet</button></div>
+      <div class="profile-menu-panel"><a href="../profile/">My profile</a><button type="button" id="mobile-wallet">Connect wallet</button><button type="button" data-guide>How to use ZeTag</button></div>
     </details>
     <button type="button" id="history-button" hidden>Transaction history</button>
   <button class="wallet-button" id="wallet-button" type="button" aria-haspopup="dialog">
@@ -33,9 +34,10 @@
 </header>
 <dialog id="notifications-dialog" class="profile-dialog" aria-labelledby="notifications-title">
   <div class="dialog-heading"><h2 id="notifications-title">Notifications</h2><form method="dialog"><button class="wallet-close" aria-label="Close notifications">×</button></form></div>
+  <button type="button" class="text-action guide-trigger" data-guide>How to use ZeTag ↗</button>
   <div class="notification-list">
     <button class="notification-row" id="notifications-ping" type="button"><span class="notification-symbol" aria-hidden="true">•••</span><span><strong>Pings</strong><small id="notifications-ping-preview">Open inbox</small></span><span class="count-badge" id="notifications-ping-count" hidden></span></button>
-    <button class="notification-row" id="notifications-transactions" type="button"><span class="notification-symbol notification-usdc" aria-hidden="true">$</span><span><strong>Transactions</strong><small id="notifications-transaction-preview">View USDC activity</small></span><span class="count-badge" id="notifications-transaction-count" hidden></span></button>
+    <button class="notification-row" id="notifications-transactions" type="button"><span class="notification-symbol notification-usdc" aria-hidden="true">$</span><span><strong>Transactions</strong><small id="notifications-transaction-preview">View recent activity</small></span><span class="count-badge" id="notifications-transaction-count" hidden></span></button>
   </div>
   <a id="notifications-recent" class="text-action" hidden>Reopen payment request</a>
 </dialog>
@@ -55,11 +57,12 @@
   <a id="wallet-fallback" class="linkbutton" hidden>Get wallet</a>
   <p id="wallet-status" class="wallet-status" role="status"></p>
   <div id="wallet-overview">
-    <dl class="wallet-balance-row"><div><dt>USDC balance</dt><dd><span class="usdc-mark" aria-hidden="true">$</span><span id="wallet-balance">Not connected</span></dd></div></dl>
+    <button class="asset-picker" data-asset-picker type="button" aria-label="Choose balance token"></button>
+    <dl class="wallet-balance-row"><div><dt id="wallet-balance-label">Balance</dt><dd><span id="wallet-balance">Not connected</span></dd></div></dl>
     <p id="wallet-balance-status" class="help" role="status"></p>
     <dl class="wallet-stats">
-      <div><dt>Total received</dt><dd id="wallet-received">—</dd></div>
-      <div><dt>Total sent</dt><dd id="wallet-sent">—</dd></div>
+      <div><dt id="wallet-received-label">Recent received</dt><dd id="wallet-received">—</dd></div>
+      <div><dt id="wallet-sent-label">Recent sent</dt><dd id="wallet-sent">—</dd></div>
     </dl>
     <p id="wallet-data-status" class="help" role="status"></p>
     <div class="wallet-overview-actions">
@@ -159,7 +162,7 @@
   <div class="zepay-recipient"><span id="zepay-avatar"></span><div><small>Sending to</small><strong id="zepay-recipient"></strong></div></div>
   <form id="zepay-form">
     <label for="zepay-amount">Amount</label>
-    <div class="zepay-amount"><input id="zepay-amount" inputmode="decimal" placeholder="0.00" maxlength="18" required><span>USDC</span></div>
+    <div class="zepay-amount"><input id="zepay-amount" inputmode="decimal" placeholder="0.00" maxlength="18" required><button type="button" class="asset-picker" data-asset-picker></button></div>
     <p class="help" id="zepay-available"></p>
     <fieldset class="zepay-purpose"><legend>What’s it for?</legend>
       <label><input name="purpose" type="radio" value="Lunch"><span>Lunch</span></label>
@@ -174,7 +177,7 @@
   </form>
   <section id="zepay-review" hidden aria-label="Payment review">
     <p id="zepay-summary"></p>
-    <p class="help">ZePay transfers are currently unavailable.</p>
+    <p class="help"><span data-asset-symbol>USDC</span> transfers are currently unavailable.</p>
     <button type="button" class="secondary" id="zepay-back">Back to amount</button>
   </section>
 </dialog>
@@ -188,5 +191,6 @@
   <textarea id="receipt-text" readonly hidden aria-label="Receipt text"></textarea>
   <p class="request-feedback" id="receipt-feedback" role="status"></p>
 </dialog>
+<script src="../guide.js?v=complete4" defer></script>
 </body>
 </html>

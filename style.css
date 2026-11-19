@@ -577,3 +577,102 @@ header .zetag-nav .header-avatar {
     display: none;
   }
 }
+
+:root {
+  --notice-violet: #7649ec;
+  --ping-read: var(--notice-violet);
+  --ping-badge: var(--notice-violet);
+}
+
+.wallet-icon {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  background: currentColor;
+  -webkit-mask: url("assets/icons/wallet.svg") center / contain no-repeat;
+  mask: url("assets/icons/wallet.svg") center / contain no-repeat;
+}
+.wallet-icon::after { content: none; }
+header .zetag-nav .nav-icon svg { stroke-width: 1.45; }
+header .zetag-nav .notification-dot {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--notice-violet);
+  padding: 0;
+  min-width: 0;
+  top: 5px;
+  right: 5px;
+}
+.ping-tick.is-read { color: var(--notice-violet); }
+.count-badge { background: var(--notice-violet); }
+.asset-picker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: auto;
+  padding: 7px 10px;
+  margin: 5px 0 8px;
+  border: 1px solid #55416c;
+  border-radius: 20px;
+  background: #21172f;
+  color: #f0e8fb;
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.asset-picker:disabled { opacity: 1; cursor: default; }
+.token-mark {
+  display: inline-grid;
+  align-content: center;
+  justify-items: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  font-weight: 750;
+}
+.token-usdc { background: #2775ca; border-radius: 50%; color: white; }
+.token-sol { gap: 3px; background: #15111f; border-radius: 50%; }
+.token-sol i { display: block; width: 14px; height: 3px; background: linear-gradient(100deg,#85ffcc,#9074ff); transform: skew(-20deg); border-radius: 1px; }
+.token-sol i:nth-child(2) { transform: skew(20deg); }
+.token-dialog { width: min(400px, calc(100% - 24px)); padding: 22px; }
+.token-options { display: grid; gap: 8px; margin-top: 18px; }
+.token-option {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto 18px;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 10px;
+  background: #21182d;
+  color: inherit;
+  border: 1px solid #47345d;
+  border-radius: 13px;
+  text-align: left;
+}
+.token-option[aria-pressed="true"] { border-color: #a384e5; }
+.token-option strong, .token-option small { display: block; }
+.token-option small { color: #bdaccd; }
+.token-check { color: #bd9fff; }
+.token-option > small { max-width: 130px; overflow-wrap: anywhere; }
+.zepay-amount .asset-picker { margin: 0; }
+.guide-trigger { font-size: 13px; margin: 10px 0; }
+.guide-highlight { outline: 2px solid #a589ff !important; outline-offset: 5px; }
+.guide-dialog { width: min(410px, calc(100% - 24px)); padding: 24px; }
+.guide-steps { display: flex; gap: 6px; margin-top: 16px; }
+.guide-steps button { flex: 1; height: 6px; border: 0; border-radius: 4px; padding: 0; background: #47325f; }
+.guide-steps button[aria-current="step"] { background: var(--notice-violet); }
+.guide-dialog p { color: #d6c7e7; line-height: 1.65; }
+.guide-actions { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
+.guide-actions .primary { width: auto; margin: 0; flex: 1; }
+.guide-actions .text-action { flex: none; }
+.guide-dialog h3 { margin-bottom: 4px; font-size: 20px; }
+@media(max-width: 600px) {
+  .token-dialog { margin: auto auto 12px; }
+}

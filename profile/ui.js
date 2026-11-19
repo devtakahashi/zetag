@@ -29,7 +29,7 @@
 
   function badge(el, count) {
     el.hidden = !count;
-    el.textContent = count > 99 ? '99+' : String(count);
+    el.textContent = el.classList.contains('notification-dot') ? '' : count > 99 ? '99+' : String(count);
     el.setAttribute('aria-label', count + ' unread');
   }
 
@@ -135,7 +135,7 @@
     badge(get('notifications-transaction-count'), tx.length);
     const ping = contacts.find(contact => contact.unread);
     get('notifications-ping-preview').textContent = ping ? 'Ping from @' + ping.tag : 'Open inbox';
-    get('notifications-transaction-preview').textContent = tx.length ? tx[0].amount + (tx[0].inbound ? ' received' : ' sent') : 'View USDC activity';
+    get('notifications-transaction-preview').textContent = tx.length ? tx[0].amount + (tx[0].inbound ? ' received' : ' sent') : 'View recent activity';
   }
 
   async function refreshProfile() {

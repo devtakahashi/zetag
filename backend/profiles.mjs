@@ -208,7 +208,9 @@ async function search(db, url) {
   return json({ matches: rows.results });
 }
 
-async function usdcAccounts(request, db, rpcUrl) {
+async function tokenBalance(request, db, rpcUrl, url) {
+  const asset = url.searchParams.get('asset') || 'USDC';
+  if (!['USDC','SOL'].includes(asset)) return json({ error: 'Unsupported token.' }, 400);
   const owner = await sessionWallet(request, db);
   if (!owner || owner !== request.headers.get('X-ZeTag-Wallet')) {
     return json({ error: 'Wallet sign-in required.' }, 401);
@@ -221,13 +223,20 @@ async function usdcAccounts(request, db, rpcUrl) {
       headers: { 'Content-Type': 'application/json' },
       signal: AbortSignal.timeout(5500),
       body: JSON.stringify({
-        jsonrpc: '2.0', id: 1, method: 'getTokenAccountsByOwner',
-        params: [owner, { mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' },
+        jsonrpc: '2.0', id: 1,
+        method: asset === 'SOL' ? 'getBalance' : 'getTokenAccountsByOwner',
+        params: asset === 'SOL' ? [owner, { commitment: 'confirmed' }] :
+          [owner, { mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' },
           { encoding: 'jsonParsed', commitment: 'confirmed' }]
       })
     });
     if (!response.ok) throw new Error('Solana RPC unavailable');
     const result = await response.json();
+    if (asset === 'SOL') {
+      const amount = result.result?.value;
+      if (result.error || !Number.isSafeInteger(amount) || amount < 0) throw new Error('Invalid SOL balance');
+      return json({ amount: String(amount) });
+    }
     if (result.error || !Array.isArray(result.result?.value)) throw new Error('Unexpected Solana RPC response');
     const accounts = result.result.value.map(item => {
       const amount = item.account.data.parsed.info.tokenAmount.amount;
@@ -236,14 +245,14 @@ async function usdcAccounts(request, db, rpcUrl) {
     });
     return json({ accounts });
   } catch {
-    return json({ error: 'USDC balance is unavailable.' }, 503);
+    return json({ error: asset + ' balance is unavailable.' }, 503);
   }
 }
 
 export async function profiles(request, db, url, rpcUrl) {
   const path = url.pathname.slice('/pay/_profiles'.length);
   if (request.method === 'GET') {
-    if (path === '/_balance') return usdcAccounts(request, db, rpcUrl);
+    if (path === '/_balance') return tokenBalance(request, db, rpcUrl, url);
     if (path === '/_search') return search(db, url);
     if (path === '/_me') {
       const wallet = await sessionWallet(request, db);
