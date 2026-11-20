@@ -381,11 +381,58 @@
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
       signal
     });
-    if (!response.ok) throw new Error('RPC unavailable');
-    const payload = await response.json();
-    if (payload.error || !Object.hasOwn(payload, 'result')) throw new Error('RPC request failed');
+    let payload;
+    try { payload = await response.json(); } catch { throw new Error('The balance provider returned an invalid response.'); }
+    if (!response.ok || payload.error || !Object.hasOwn(payload, 'result')) {
+      throw new Error(typeof payload.error === 'string' ? payload.error : 'Balance provider unavailable (HTTP ' + response.status + ').');
+    }
     return payload.result;
   }
+
+  let priceCache = null, pricePromise = null;
+  async function loadPrices() {
+    if (priceCache && Date.now() < priceCache.expires) return priceCache.data;
+    if (pricePromise) return pricePromise;
+    pricePromise = (async () => {
+      const response = await fetch(new URL('/pay/_payments/prices', location.origin), {signal:AbortSignal.timeout(8000)});
+      if (!response.ok) throw new Error('USD price unavailable');
+      const data = await response.json();
+      for (const asset of ['SOL','USDC']) {
+        const quote = data.prices?.[asset];
+        if (!quote || typeof quote.usd !== 'number' || !Number.isFinite(quote.usd) || quote.usd <= 0 || !Number.isFinite(quote.updatedAt) || Date.now() - quote.updatedAt > 300000 || quote.updatedAt > Date.now()+60000) throw new Error('USD price unavailable');
+      }
+      priceCache = {data,expires:Math.min(Date.now()+60000,...Object.values(data.prices).map(q=>q.updatedAt+300000))};
+      return data;
+    })();
+    try { return await pricePromise; } finally { pricePromise = null; }
+  }
+  function dollars(amount, asset, price) {
+    const rate = BigInt(price.toFixed(8).replace('.', ''));
+    const divisor = 10n ** BigInt(ZeTagTokens.assets[asset].decimals + 8 - 2);
+    const raw = amount * rate;
+    const cents = (raw + divisor / 2n) / divisor;
+    if (raw > 0n && cents === 0n) return '< $0.01';
+    return '≈ $' + (cents / 100n).toLocaleString('en-US') + '.' + (cents % 100n).toString().padStart(2, '0');
+  }
+  async function updateDollars() {
+    const el = get('wallet-balance-usd'); if (!el) return;
+    const owner = address, asset = ZeTagTokens.selected, amount = balances[asset];
+    el.hidden = true; el.textContent = '';
+    if (!owner || amount === null || amount === undefined) return;
+    if (amount === 0n) { el.textContent = '≈ $0.00'; el.title = 'Estimated USD value'; el.hidden = false; return; }
+    try {
+      const data = await loadPrices();
+      if (owner !== address || asset !== ZeTagTokens.selected || amount !== balances[asset]) return;
+      el.textContent = dollars(amount, asset, data.prices[asset].usd);
+      el.title = 'Estimated USD value · price updated ' + new Date(data.prices[asset].updatedAt).toLocaleTimeString();
+      el.hidden = false;
+    } catch {
+      if (owner === address && asset === ZeTagTokens.selected && amount === balances[asset]) {
+        el.textContent = 'USD unavailable'; el.title = 'The token balance is available, but its market price could not be loaded.'; el.hidden = false;
+      }
+    }
+  }
+  document.addEventListener('zetag:wallet-balance', () => { void updateDollars(); });
 
   async function loadBalance(owner, controller, asset) {
     const status = get('wallet-balance-status');
@@ -420,10 +467,12 @@
       balance.textContent = ZeTagTokens.formatUnits(balances[asset], asset);
       document.dispatchEvent(new Event('zetag:wallet-balance'));
       return new Set(asset === 'SOL' ? [] : accounts.map(item => item.address));
-    } catch {
+    } catch (error) {
       if (controller.signal.aborted) return null;
       balance.textContent = 'Unavailable';
-      status.textContent = 'Could not load the ' + asset + ' balance. Refresh to try again.';
+      const reasons = error.errors || [error];
+      const relevant = reasons.find(item => /RPC|provider|SOLANA_RPC_URL/.test(item.message || ''));
+      status.textContent = relevant?.message || 'Could not load the ' + asset + ' balance. Refresh to try again.';
       return null;
     }
   }
@@ -595,6 +644,7 @@
   }, { once: true });
   void restoreWallet();
   refresh();
+  setInterval(() => { if (address && !document.hidden && dialog.open) void updateDollars(); }, 60000);
   setInterval(() => {
     if (address && !document.hidden && !dialog.open && !history.open) void refresh();
   }, 90000);

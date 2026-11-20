@@ -836,3 +836,8 @@ header .zetag-nav svg.account-glyph-filled { fill: currentColor; stroke: none; }
 .payment-review-dialog > button, .payment-review-dialog > a.linkbutton { width: 100%; margin-top: 12px; }
 .payment-activity-list { padding: 0; list-style: none; }
 .payment-activity-list li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid #382b48; }
+
+.wallet-balance-values { display: flex; flex: 1 1 0; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; min-width: 0; }
+.wallet-balance-values #wallet-balance { flex: 0 1 auto; }
+.wallet-balance-row .wallet-balance-usd { flex: none; margin: 0; color: #7649ec; font-size: clamp(13px, 3.4vw, 16px); font-weight: 600; line-height: 1.4; }
+.wallet-balance-row .wallet-balance-usd[hidden] { display: none; }

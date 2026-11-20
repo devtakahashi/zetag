@@ -1,3 +1,5 @@
+import { solanaRpc } from './solana-rpc.mjs';
+import { marketPrices } from './market-prices.mjs';
 // Mainnet payment intents. The server never holds a user's signing keys.
 export const USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const TOKEN = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
@@ -24,11 +26,7 @@ async function body(request) {
  while(true){const {value,done}=await reader.read();if(done)break;size+=value.length;if(size>12000){await reader.cancel();throw Error('Request too large');}parts.push(value);}
  const all=new Uint8Array(size);let offset=0;for(const p of parts){all.set(p,offset);offset+=p.length;}return JSON.parse(new TextDecoder().decode(all));
 }
-export async function rpc(env, method, params) {
- const response=await fetch(env.SOLANA_RPC_URL||'https://api.mainnet-beta.solana.com',{method:'POST',redirect:'manual',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params}),signal:AbortSignal.timeout(12000)});
- if(response.status>=300&&response.status<400)throw Error('Solana RPC redirected. Configure the final RPC endpoint URL.');
- if(!response.ok)throw Error('Solana service unavailable');const data=await response.json();if(data.error)throw Error('Solana request failed');return data.result;
-}
+export const rpc = solanaRpc;
 let checkedEndpoint='',checkedAt=0;
 async function mainnet(env) {
  const endpoint=env.SOLANA_RPC_URL||'public';if(checkedEndpoint===endpoint&&Date.now()-checkedAt<300000)return;
@@ -96,6 +94,11 @@ async function limit(request,db){
  if(Math.random()<.01)await db.prepare('DELETE FROM payment_rate WHERE expires < ?').bind(Date.now()).run();
 }
 export async function payments(request,env,url) {
+ const route=url.pathname.slice('/pay/_payments'.length);
+ if(route==='/connection'&&request.method==='GET')return json({rpcConfigured:Boolean(env.SOLANA_RPC_URL),paymentsEnabled:env.PAYMENTS_ENABLED==='true'});
+ if(route==='/prices'&&request.method==='GET'){
+  try{return json(await marketPrices(env));}catch{return json({error:'USD market prices are temporarily unavailable.'},503);}
+ }
  if(env.PAYMENTS_ENABLED!=='true')return json({error:'Payments are not enabled yet.'},503);
  try{
   const path=url.pathname.slice('/pay/_payments'.length);const db=env.DB;

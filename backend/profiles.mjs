@@ -1,3 +1,4 @@
+import { solanaRpc } from './solana-rpc.mjs';
 const tags = /^[a-z0-9][a-z0-9_-]{2,23}$/;
 const base58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const presets = new Set(['zelle','paypal','solana','pump-fun','coingecko','dex-screener','zetag-space-courier','zetag-after-hours']);
@@ -215,24 +216,10 @@ async function tokenBalance(request, db, rpcUrl, url) {
   if (!owner || owner !== request.headers.get('X-ZeTag-Wallet')) {
     return json({ error: 'Wallet sign-in required.' }, 401);
   }
-  const endpoint = rpcUrl || 'https://api.mainnet-beta.solana.com';
   try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      redirect: 'manual',
-      headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(5500),
-      body: JSON.stringify({
-        jsonrpc: '2.0', id: 1,
-        method: asset === 'SOL' ? 'getBalance' : 'getTokenAccountsByOwner',
-        params: asset === 'SOL' ? [owner, { commitment: 'confirmed' }] :
-          [owner, { mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' },
-          { encoding: 'jsonParsed', commitment: 'confirmed' }]
-      })
-    });
-    if (response.status >= 300 && response.status < 400) throw new Error('Solana RPC redirects are not allowed');
-    if (!response.ok) throw new Error('Solana RPC unavailable');
-    const result = await response.json();
+    const value = await solanaRpc({SOLANA_RPC_URL:rpcUrl}, asset === 'SOL' ? 'getBalance' : 'getTokenAccountsByOwner',
+      asset === 'SOL' ? [owner, {commitment:'confirmed'}] : [owner, {mint:'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'}, {encoding:'jsonParsed',commitment:'confirmed'}]);
+    const result = {result:value};
     if (asset === 'SOL') {
       const amount = result.result?.value;
       if (result.error || !Number.isSafeInteger(amount) || amount < 0) throw new Error('Invalid SOL balance');
@@ -245,8 +232,8 @@ async function tokenBalance(request, db, rpcUrl, url) {
       return { address: item.pubkey, amount };
     });
     return json({ accounts });
-  } catch {
-    return json({ error: asset + ' balance is unavailable.' }, 503);
+  } catch (error) {
+    return json({ error: error.message || asset + ' balance is unavailable.' }, 503);
   }
 }
 
