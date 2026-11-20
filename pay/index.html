@@ -5,24 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
   <title>Payment request | ZeTag</title>
-  <link rel="stylesheet" href="../style.css?v=dropdown6">
+  <link rel="stylesheet" href="../style.css?v=filled7">
   <link rel="icon" type="image/png" href="../zetag-icon.png">
-  <script src="../tokens.js?v=dropdown6" defer></script>
-<script src="../request-data.js?v=dropdown6" defer></script>
+  <script src="../tokens.js?v=filled7" defer></script>
+<script src="../request-data.js?v=filled7" defer></script>
   <script src="../saved-pages.js" defer></script>
-  <script src="../pay.js?v=dropdown6" defer></script>
-  <script src="../profile/ui.js?v=dropdown6" defer></script>
-<script src="../wallet.js?v=dropdown6" defer></script>
+  <script src="../pay.js?v=filled7" defer></script>
+  <script src="../profile/ui.js?v=filled7" defer></script>
+<script src="../wallet.js?v=filled7" defer></script>
 <link rel="stylesheet" href="../profile/profile.css">
-<link rel="stylesheet" href="../profile/premium.css?v=dropdown6">
+<link rel="stylesheet" href="../profile/premium.css?v=filled7">
 </head>
 <body>
 <header>
   <a class="brand" href="../"><span class="brand-mark" aria-hidden="true"></span>ZeTag</a>
   <div class="wallet-tools zetag-nav">
     <button class="wallet-button nav-icon" id="notifications-button" type="button" aria-label="Notifications" aria-haspopup="dialog"><svg class="bell-glyph" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" stroke="none" d="M12 3a6 6 0 0 0-6 6v4.4L4.2 17a.7.7 0 0 0 .6 1h14.4a.7.7 0 0 0 .6-1L18 13.4V9a6 6 0 0 0-6-6Zm-2 17a2 2 0 0 0 4 0Z"/><path fill="none" d="M3 8a9 9 0 0 1 3-5m15 5a9 9 0 0 0-3-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="notification-dot nav-count" aria-hidden="true" hidden></span></button>
-    <a class="wallet-button nav-icon profile-link" href="../profile/" aria-label="Profile" title="Profile"><svg class="account-glyph" viewBox="0 0 28 28" aria-hidden="true"><circle cx="10" cy="6" r="3.5"/><path d="M3 23v-5a7 7 0 0 1 7-7h1M13 15h-3a2 2 0 0 0 0 4h1a2 2 0 0 1 0 4H8m2-10v2m0 8v2m12-12v8m-4-4h8"/></svg></a>
-    <details class="profile-menu"><summary class="wallet-button nav-icon" aria-label="Profile"><svg class="account-glyph" viewBox="0 0 28 28" aria-hidden="true"><circle cx="10" cy="6" r="3.5"/><path d="M3 23v-5a7 7 0 0 1 7-7h1M13 15h-3a2 2 0 0 0 0 4h1a2 2 0 0 1 0 4H8m2-10v2m0 8v2m12-12v8m-4-4h8"/></svg></summary>
+    <a class="wallet-button nav-icon profile-link" href="../profile/" aria-label="Profile" title="Profile"><svg class="account-glyph account-glyph-filled" viewBox="0 0 32 32" aria-hidden="true" fill="currentColor" stroke="none"><defs><mask id="profile-coin-1-bust" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><rect width="32" height="32" fill="white"/><circle cx="23" cy="23" r="8.5" fill="black"/></mask><mask id="profile-coin-1-dollar" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><rect width="32" height="32" fill="white"/><path d="M25 19.8h-2.8a1.6 1.6 0 0 0 0 3.2h1.6a1.6 1.6 0 0 1 0 3.2H21m2-8v9.6" fill="none" stroke="black" stroke-width="1.5" stroke-linecap="round"/></mask></defs><circle cx="11" cy="6" r="4.7"/><path d="M1 28v-2a10 10 0 0 1 20 0v2Z" mask="url(#profile-coin-1-bust)"/><circle cx="23" cy="23" r="7.3" mask="url(#profile-coin-1-dollar)"/><path d="M27 4v7m-3.5-3.5h7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></a>
+    <details class="profile-menu"><summary class="wallet-button nav-icon" aria-label="Profile"><svg class="account-glyph account-glyph-filled" viewBox="0 0 32 32" aria-hidden="true" fill="currentColor" stroke="none"><defs><mask id="profile-coin-2-bust" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><rect width="32" height="32" fill="white"/><circle cx="23" cy="23" r="8.5" fill="black"/></mask><mask id="profile-coin-2-dollar" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><rect width="32" height="32" fill="white"/><path d="M25 19.8h-2.8a1.6 1.6 0 0 0 0 3.2h1.6a1.6 1.6 0 0 1 0 3.2H21m2-8v9.6" fill="none" stroke="black" stroke-width="1.5" stroke-linecap="round"/></mask></defs><circle cx="11" cy="6" r="4.7"/><path d="M1 28v-2a10 10 0 0 1 20 0v2Z" mask="url(#profile-coin-2-bust)"/><circle cx="23" cy="23" r="7.3" mask="url(#profile-coin-2-dollar)"/><path d="M27 4v7m-3.5-3.5h7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></summary>
       <div class="profile-menu-panel">
         <a href="../profile/" class="account-menu-row"><span>Profile</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="3.5"/><path d="M5 21v-3a7 7 0 0 1 14 0v3"/></svg></a>
         <button type="button" id="mobile-wallet" class="account-menu-row"><span id="mobile-wallet-label">Connect</span><span class="wallet-icon" aria-hidden="true"></span></button>

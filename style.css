@@ -812,3 +812,11 @@ header .zetag-nav .bell-glyph { width: 24px; height: 24px; }
 .wallet-connected .wallet-balance-row > div { display: block; }
 #wallet-overview .wallet-balance-content { margin: 0; text-align: left; gap: 12px; }
 .wallet-balance-content #wallet-balance { text-align: left; font-size: clamp(18px, 4.7vw, 34px); }
+
+/* Filled person + coin profile glyph, paired with the filled bell. */
+header .zetag-nav svg.account-glyph-filled { fill: currentColor; stroke: none; }
+/* Raise only the decorative page watermark; keep Powered By in place. */
+.site-watermark { transform: translateY(-32px); }
+@media (max-width: 600px) {
+  .site-watermark { transform: translateY(-20px); }
+}

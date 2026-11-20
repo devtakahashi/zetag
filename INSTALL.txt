@@ -1,35 +1,25 @@
-ZeTag wallet fitting and token dropdown update
+ZeTag filled profile icon and watermark update
 
 1. Extract this ZIP.
-2. Upload the root files and contents of profile and pay to the matching
-   paths in your existing GitHub repository, replacing the existing files.
-3. Copy pay/index.html to the local pay folder beside your backend folder.
-4. From your existing local backend folder, run: npx wrangler deploy
-5. Wait for GitHub Pages to finish publishing, then refresh ZeTag.
+2. Upload the files to matching paths in your existing GitHub repository,
+   replacing the existing files. Keep other files already in the repository.
+3. Copy pay/index.html to the local pay folder beside backend.
+4. Run npx wrangler deploy from your existing backend folder.
+5. Wait for GitHub Pages to publish and refresh the website.
 
-Apply over your existing combined tokens/interface update. Keep the other
-files and folders already in your repository. No database changes are needed.
+This package includes the previous token dropdown and wallet layout update.
+There are no database changes.
 
-Changes
-- Every editable USDC/SOL selector opens a compact dropdown directly below
-  the control. The menu and option rows have no borders. A radio dot shows
-  the selected token. Escape, arrow keys and outside clicks are supported.
-- Fixed-currency payment requests still keep their requested token locked.
-- Wallet balance labels are visually removed, with a compact single row
-  for the number and token selector on desktop and mobile. An accessible
-  label remains available to screen readers.
-- Display name is removed from payment requests and reusable payment-page
-  setup. Recipient names are derived from the ZeTag, preserving compatibility
-  with the existing payment-link backend and previously created links.
-- Payment link uses a copy icon. Payment page keeps the pen icon. Both
-  creation buttons stay on the same row.
-- Includes the previous header avatars, profile menu, bell and wallet-browser
-  flow changes. This update does not change those connection flows.
+New changes
+- Concept two is applied to mobile and desktop profile controls on the home,
+  profile and payment pages: filled person, overlapping dollar coin, and plus.
+- The saved-avatar behaviour is preserved. The icon appears before a claimed
+  profile is loaded and is restored after disconnecting.
+- The decorative Solana/Zelle page watermark is raised by 32px on desktop
+  and 20px on mobile. The Powered By row keeps its existing position.
+- Page cache versions are refreshed so the new stylesheet is requested.
 
-Checks
-Automated checks passed for dropdown opening/selection, radio state, keyboard
-navigation, Escape focus restoration, outside-click/focus dismissal, multiple
-controls, locked controls, token precision and old payment-link validation.
-The wallet and avatar regression checks also passed.
-Real-device visual and wallet-app approval testing remains necessary.
-This update does not enable live payment transfers.
+Validation
+All six profile SVGs were checked for valid XML, separate mask IDs, dollar
+and plus paths. Saved-avatar replacement and restoration code is unchanged.
+Real-device visual checking remains necessary after upload.
