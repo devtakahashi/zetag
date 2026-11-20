@@ -642,30 +642,6 @@ header .zetag-nav .notification-dot {
 .token-sol { gap: 3px; background: #15111f; border-radius: 50%; }
 .token-sol i { display: block; width: 14px; height: 3px; background: linear-gradient(100deg,#85ffcc,#9074ff); transform: skew(-20deg); border-radius: 1px; }
 .token-sol i:nth-child(2) { transform: skew(20deg); }
-.token-dialog { width: min(400px, calc(100% - 24px)); padding: 22px; }
-.token-options { display: grid; gap: 8px; margin-top: 18px; }
-.token-option {
-  display: grid;
-  grid-template-columns: 30px minmax(0, 1fr) auto 18px;
-  align-items: center;
-  gap: 9px;
-  padding: 13px 10px;
-  background: #21182d;
-  color: inherit;
-  border: 1px solid #47345d;
-  border-radius: 13px;
-  text-align: left;
-}
-.token-option[aria-pressed="true"] { border-color: #a384e5; }
-.token-option strong, .token-option small { display: block; }
-.token-option small { color: #bdaccd; }
-.token-check { color: #bd9fff; }
-.token-option > small { max-width: 130px; overflow-wrap: anywhere; }
-.zepay-amount .asset-picker { margin: 0; }
-@media(max-width: 600px) {
-  .token-dialog { margin: auto auto 12px; }
-}
-
 /* Compact token controls are part of their amount or balance field. */
 .amount-field {
   display: flex;
@@ -734,29 +710,6 @@ header .zetag-nav .notification-dot {
   border: 0;
   padding: 7px 0;
 }
-.token-option {
-  padding: 12px;
-  border: 1px solid #3e304e;
-  border-radius: 12px;
-  background: #1b1525;
-}
-.token-option[aria-pressed="true"] { border-color: #8c6fc4; background: #241b31; }
-.token-check {
-  display: inline-grid;
-  place-items: center;
-  width: 16px;
-  height: 16px;
-  border: 1px solid #806e96;
-  border-radius: 50%;
-}
-.token-option[aria-pressed="true"] .token-check { border-color: var(--notice-violet); }
-.token-option[aria-pressed="true"] .token-check::after {
-  content: "";
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--notice-violet);
-}
 .profile-menu-panel {
   width: 184px;
   padding: 6px;
@@ -815,3 +768,47 @@ header .zetag-nav .bell-glyph { width: 24px; height: 24px; }
 }
 .payment-create-actions > button > span { white-space: nowrap; }
 .payment-create-actions:has(#personal-editor[hidden]) { grid-template-columns: minmax(0,1fr); }
+
+/* Token menus stay attached beneath each amount/balance selector. */
+.amount-field, .wallet-balance-content { position: relative; }
+.token-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 50;
+  width: min(220px, 100%);
+  padding: 5px;
+  border: 0;
+  border-radius: 12px;
+  background: #1a1425;
+  box-shadow: 0 12px 28px #0006;
+}
+.token-dropdown[hidden] { display: none; }
+.token-dropdown .token-option {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 0;
+  padding: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #f4edff;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.token-option:hover, .token-option:focus-visible { background: #30233f; }
+.token-option strong, .token-option small { display: block; }
+.token-option strong { font-size: 13px; }
+.token-option small { color: #baaccb; font-size: 11px; }
+.token-check { display: grid; place-items: center; width: 14px; height: 14px; border: 1px solid #806e96; border-radius: 50%; }
+.token-option[aria-checked="true"] .token-check { border-color: var(--notice-violet); }
+.token-option[aria-checked="true"] .token-check::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--notice-violet); }
+.balance-accessible-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.wallet-connected .wallet-balance-row { padding: 14px 16px; }
+.wallet-connected .wallet-balance-row > div { display: block; }
+#wallet-overview .wallet-balance-content { margin: 0; text-align: left; gap: 12px; }
+.wallet-balance-content #wallet-balance { text-align: left; font-size: clamp(18px, 4.7vw, 34px); }

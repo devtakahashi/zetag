@@ -240,8 +240,6 @@ function showReceive() {
     <form>
       <label for="handle">Your ZeTag</label>
       <input id="handle" name="handle" placeholder="@yourname" maxlength="25" required>
-      <label for="display">Display name</label>
-      <input id="display" name="display" maxlength="50" placeholder="Your name or business" required>
       <div id="request-fields">
         <label for="request">Amount</label>
         <div class="amount-field"><input id="request" name="request" inputmode="decimal" placeholder="0.00" required><button type="button" class="asset-picker" data-asset-picker></button></div>
@@ -260,7 +258,7 @@ function showReceive() {
 </div>
       </div>
       <div class="payment-create-actions">
-        <button class="primary" type="submit"><span>Payment link</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15z"/></svg></button>
+        <button class="primary" type="submit"><span>Payment link</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></button>
         <button class="secondary" id="personal-editor" type="button"><span>Payment page</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15z"/></svg></button>
       </div>
     </form>
@@ -280,7 +278,6 @@ function showReceive() {
   const get = selector => panel.querySelector(selector);
   const form = get('form');
   const handle = get('#handle');
-  const display = get('#display');
   const file = get('#request-logo');
   const clear = get('#clear-logo');
   const submit = get('button[type=submit]');
@@ -291,10 +288,9 @@ function showReceive() {
   let uploadVersion = 0;
   let imageBusy = false;
   handle.value = profile?.tag ?? '';
-  display.value = profile?.name ?? '';
 
   function updatePreview() {
-    applyBranding(get('.live-brand .brand-pair'), { logo, name: display.value.trim(), tag: cleanTag(handle.value) });
+    applyBranding(get('.live-brand .brand-pair'), { logo, name: '@' + cleanTag(handle.value), tag: cleanTag(handle.value) });
     clear.hidden = !logo && !imageBusy;
   }
 
@@ -357,10 +353,10 @@ function showReceive() {
     event.preventDefault();
     if (form.dataset.creating || imageBusy) return;
     const tag = cleanTag(handle.value);
-    const name = display.value.trim();
+    const name = '@' + tag;
     const amount = personal ? '' : normalizeAmount(amountInput.value, tokens.selected);
-    if (!tagPattern.test(tag) || !name) {
-      status.textContent = 'Choose a valid tag and enter a display name.';
+    if (!tagPattern.test(tag)) {
+      status.textContent = 'Choose a valid ZeTag.';
       return;
     }
     if (!personal && !amount) {
@@ -384,7 +380,7 @@ function showReceive() {
       refreshSavedPage();
       form.hidden = true;
       result.hidden = false;
-      get('#personal-recipient').textContent = name + ' · @' + tag;
+      get('#personal-recipient').textContent = '@' + tag;
       get('#personal-preview').href = url.href;
       const field = get('#personal-url');
       field.hidden = true;

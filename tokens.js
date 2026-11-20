@@ -61,7 +61,8 @@
         arrow.className = 'token-chevron';
         arrow.setAttribute('aria-hidden', 'true');
         button.append(arrow);
-        button.setAttribute('aria-haspopup', 'dialog');
+        button.setAttribute('aria-haspopup', 'menu');
+        button.setAttribute('aria-expanded', String(button === activePicker));
       }
     }
     for (const text of document.querySelectorAll('[data-asset-symbol]')) text.textContent = selected;
@@ -75,47 +76,89 @@
     document.dispatchEvent(new CustomEvent('zetag:asset-changed', { detail: { asset: symbol } }));
   }
 
-  const dialog = document.createElement('dialog');
-  dialog.className = 'token-dialog';
-  dialog.setAttribute('aria-labelledby', 'token-title');
-  dialog.innerHTML = '<div class="dialog-heading"><h2 id="token-title">Choose a token</h2><form method="dialog"><button class="wallet-close" aria-label="Close token selection">×</button></form></div><div class="token-options"></div>';
-  const options = dialog.querySelector('.token-options');
+  let activePicker = null;
+  const menu = document.createElement('div');
+  menu.id = 'token-menu';
+  menu.className = 'token-dropdown';
+  menu.hidden = true;
+  menu.setAttribute('role', 'menu');
+  menu.setAttribute('aria-label', 'Choose a token');
+  function closeMenu(restoreFocus = false) {
+    const previous = activePicker;
+    menu.hidden = true;
+    activePicker = null;
+    previous?.setAttribute('aria-expanded', 'false');
+    previous?.removeAttribute('aria-controls');
+    if (restoreFocus && previous?.isConnected) previous.focus();
+  }
   for (const asset of Object.values(assets)) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'token-option';
+    button.setAttribute('role', 'menuitemradio');
     const info = document.createElement('span');
     const name = document.createElement('strong');
     name.textContent = asset.symbol;
     const full = document.createElement('small');
     full.textContent = asset.name;
     info.append(name, full);
-    const balance = document.createElement('small');
     const check = document.createElement('span');
     check.className = 'token-check';
     check.setAttribute('aria-hidden', 'true');
-    button.append(mark(asset.symbol), info, balance, check);
-    button.onclick = () => { dialog.close(); select(asset.symbol); };
+    button.append(mark(asset.symbol), info, check);
+    button.onclick = () => { closeMenu(true); select(asset.symbol); };
     button.dataset.symbol = asset.symbol;
-    options.append(button);
+    menu.append(button);
   }
-  document.body.append(dialog);
   function updateOptions() {
-    for (const button of options.children) {
-      const symbol = button.dataset.symbol;
-      const balance = window.ZeTagWallet?.balanceOf?.(symbol);
-      button.children[2].textContent = balance === null || balance === undefined ? '' : formatUnits(balance, symbol);
-      button.children[3].textContent = '';
-      button.setAttribute('aria-pressed', String(symbol === selected));
+    for (const button of menu.children) {
+      const checked = String(button.dataset.symbol === selected);
+      button.setAttribute('aria-checked', checked);
+      button.setAttribute('aria-pressed', checked);
     }
+  }
+  function openMenu(button, last = false) {
+    closeMenu();
+    activePicker = button;
+    button.parentElement.append(menu);
+    updateOptions();
+    menu.hidden = false;
+    button.setAttribute('aria-expanded', 'true');
+    button.setAttribute('aria-controls', menu.id);
+    const current = [...menu.children].find(option => option.dataset.symbol === selected);
+    (last ? menu.lastElementChild : current || menu.firstElementChild).focus();
   }
   document.addEventListener('click', event => {
     const button = event.target.closest('[data-asset-picker]');
-    if (!button || button.disabled) return;
-    updateOptions();
-    dialog.showModal();
+    if (button && !button.disabled) {
+      if (activePicker === button) closeMenu();
+      else openMenu(button);
+    } else if (!menu.contains(event.target)) closeMenu();
   });
-  document.addEventListener('zetag:wallet-balance', updateOptions);
+  document.addEventListener('keydown', event => {
+    const picker = event.target.closest('[data-asset-picker]');
+    if (picker && !picker.disabled && ['ArrowDown', 'ArrowUp'].includes(event.key)) {
+      event.preventDefault();
+      openMenu(picker, event.key === 'ArrowUp');
+      return;
+    }
+    if (!activePicker) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu(true);
+    } else if (menu.contains(event.target) && ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+      event.preventDefault();
+      const items = [...menu.children];
+      const index = items.indexOf(document.activeElement);
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+      items[next].focus();
+    }
+  });
+  document.addEventListener('focusin', event => {
+    if (activePicker && event.target !== activePicker && !menu.contains(event.target)) closeMenu();
+  });
+  document.addEventListener('zetag:asset-changed', () => closeMenu());
   window.ZeTagTokens = Object.freeze({ assets, normalize, units, formatUnits, formatAmount, select, render, get selected() { return selected; } });
   render();
 })();

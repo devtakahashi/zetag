@@ -1,38 +1,35 @@
-ZeTag interface and wallet-browser update
+ZeTag wallet fitting and token dropdown update
 
-1. Extract the ZIP.
-2. Upload its root files and the contents of profile and pay to matching
-   paths in your existing GitHub repository. Choose Replace when prompted.
-3. Copy pay/index.html into the local pay folder beside backend.
-4. Run npx wrangler deploy from your existing local backend folder.
-5. Wait for GitHub Pages to publish and refresh ZeTag.
+1. Extract this ZIP.
+2. Upload the root files and contents of profile and pay to the matching
+   paths in your existing GitHub repository, replacing the existing files.
+3. Copy pay/index.html to the local pay folder beside your backend folder.
+4. From your existing local backend folder, run: npx wrangler deploy
+5. Wait for GitHub Pages to finish publishing, then refresh ZeTag.
 
-This update applies over the combined tokens update already uploaded.
-There are no new database changes.
+Apply over your existing combined tokens/interface update. Keep the other
+files and folders already in your repository. No database changes are needed.
 
 Changes
-- USDC/SOL controls sit at the right inside amount inputs and the wallet
-  balance panel. Token selection uses a circular selected-dot indicator.
-- A ringing bell replaces the old glyph. The violet notification dot stays.
-- The profile dropdown has Profile and Connect entries with trailing icons.
-- The saved profile avatar appears in desktop and mobile headers.
-- Payment link and Payment page creation buttons share a row.
-- The guide links and guide script have been removed from all three pages.
-
-Wallets
-Select a wallet, then tap Connect. On mobile, Phantom, Solflare and Backpack
-open ZeTag in their built-in browser. Tap Connect there to approve once and
-continue claiming or editing a profile inside that browser.
-Jupiter's browser-opening link could not be verified. Selecting Jupiter
-outside its browser copies the current ZeTag link and explains where to paste
-it. Open Jupiter Mobile's browser, paste that link and connect from there.
-Wallet Standard and injected providers are preferred when available.
-
-Existing guide.js, wallet-mobile.js and vendor files can remain in the
-repository. These pages no longer load the guide or direct handoff scripts.
+- Every editable USDC/SOL selector opens a compact dropdown directly below
+  the control. The menu and option rows have no borders. A radio dot shows
+  the selected token. Escape, arrow keys and outside clicks are supported.
+- Fixed-currency payment requests still keep their requested token locked.
+- Wallet balance labels are visually removed, with a compact single row
+  for the number and token selector on desktop and mobile. An accessible
+  label remains available to screen readers.
+- Display name is removed from payment requests and reusable payment-page
+  setup. Recipient names are derived from the ZeTag, preserving compatibility
+  with the existing payment-link backend and previously created links.
+- Payment link uses a copy icon. Payment page keeps the pen icon. Both
+  creation buttons stay on the same row.
+- Includes the previous header avatars, profile menu, bell and wallet-browser
+  flow changes. This update does not change those connection flows.
 
 Checks
-Automated tests covered the three browser links, page-state preservation,
-selection before connection, avatars in both header controls, token precision
-and markup changes. Real wallet-app and phone visual checks remain pending.
-This update does not add live payment transfers.
+Automated checks passed for dropdown opening/selection, radio state, keyboard
+navigation, Escape focus restoration, outside-click/focus dismissal, multiple
+controls, locked controls, token precision and old payment-link validation.
+The wallet and avatar regression checks also passed.
+Real-device visual and wallet-app approval testing remains necessary.
+This update does not enable live payment transfers.

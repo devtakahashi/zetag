@@ -5,9 +5,9 @@
 <meta name="description" content="Send and request payments by tag with ZeTag.">
 <title>ZeTag | Pay by tag</title>
 <link rel="icon" type="image/png" href="zetag-icon.png">
-<link rel="stylesheet" href="style.css?v=polish5">
+<link rel="stylesheet" href="style.css?v=dropdown6">
 <link rel="stylesheet" href="profile/profile.css">
-<link rel="stylesheet" href="profile/premium.css?v=polish5">
+<link rel="stylesheet" href="profile/premium.css?v=dropdown6">
 <header>
   <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"></span>ZeTag</a>
   <div class="wallet-tools zetag-nav">
@@ -56,7 +56,7 @@
   <a id="wallet-fallback" class="linkbutton" hidden>Get wallet</a>
   <p id="wallet-status" class="wallet-status" role="status"></p>
   <div id="wallet-overview">
-    <dl class="wallet-balance-row"><div><dt id="wallet-balance-label">Balance</dt><dd class="wallet-balance-content"><span id="wallet-balance">Not connected</span><button class="asset-picker" data-asset-picker type="button" aria-label="Choose balance token"></button></dd></div></dl>
+    <dl class="wallet-balance-row"><div><dt id="wallet-balance-label" class="balance-accessible-label">Balance</dt><dd class="wallet-balance-content"><span id="wallet-balance">Not connected</span><button class="asset-picker" data-asset-picker type="button" aria-label="Choose balance token"></button></dd></div></dl>
     <p id="wallet-balance-status" class="help" role="status"></p>
     <dl class="wallet-stats">
       <div><dt id="wallet-received-label">Recent received</dt><dd id="wallet-received">—</dd></div>
@@ -125,11 +125,11 @@
     <button id="share-edit" type="button">Edit request</button>
   </div>
 </dialog>
-<script src="tokens.js?v=polish5" defer></script>
+<script src="tokens.js?v=dropdown6" defer></script>
 <script src="vendor/qrcode.js" defer></script>
-<script src="request-data.js?v=polish5" defer></script>
+<script src="request-data.js?v=dropdown6" defer></script>
 <script src="saved-pages.js" defer></script>
-<script src="app.js?v=polish5" defer></script>
+<script src="app.js?v=dropdown6" defer></script>
 <script src="appearance.js" defer></script>
 <dialog id="receipt-dialog" class="request-card" aria-labelledby="receipt-title">
   <form method="dialog" class="request-close"><button class="wallet-close" aria-label="Close">×</button></form>
@@ -141,6 +141,6 @@
   <textarea id="receipt-text" readonly hidden aria-label="Receipt text"></textarea>
   <p class="request-feedback" id="receipt-feedback" role="status"></p>
 </dialog>
-<script src="profile/ui.js?v=polish5" defer></script>
-<script src="wallet.js?v=polish5" defer></script>
+<script src="profile/ui.js?v=dropdown6" defer></script>
+<script src="wallet.js?v=dropdown6" defer></script>
 </html>
