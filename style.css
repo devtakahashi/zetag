@@ -820,3 +820,10 @@ header .zetag-nav svg.account-glyph-filled { fill: currentColor; stroke: none; }
 @media (max-width: 600px) {
   .site-watermark { transform: translateY(-20px); }
 }
+
+/* Flip toward available space, including the phone's visible keyboard viewport. */
+.token-dropdown { overflow-y: auto; overscroll-behavior: contain; }
+.token-dropdown[data-placement="above"] {
+  top: auto;
+  bottom: calc(100% + 8px);
+}

@@ -117,16 +117,42 @@
       button.setAttribute('aria-pressed', checked);
     }
   }
+  function positionMenu() {
+    if (!activePicker || menu.hidden) return;
+    if (!activePicker.isConnected) { closeMenu(); return; }
+    const anchor = activePicker.parentElement;
+    const rect = anchor.getBoundingClientRect();
+    const viewport = window.visualViewport;
+    let top = viewport?.offsetTop ?? 0;
+    let bottom = top + (viewport?.height ?? window.innerHeight);
+    // Respect scrolling dialogs and any other ancestor that clips content.
+    for (let parent = anchor.parentElement; parent; parent = parent.parentElement) {
+      const overflow = getComputedStyle(parent).overflowY;
+      if (['auto', 'scroll', 'hidden', 'clip'].includes(overflow)) {
+        const bounds = parent.getBoundingClientRect();
+        top = Math.max(top, bounds.top + parent.clientTop);
+        bottom = Math.min(bottom, bounds.top + parent.clientTop + parent.clientHeight);
+      }
+    }
+    const clearance = 16; // 8px menu gap plus 8px safe viewport inset.
+    const below = Math.max(0, bottom - rect.bottom - clearance);
+    const above = Math.max(0, rect.top - top - clearance);
+    menu.style.maxHeight = 'none';
+    const up = menu.scrollHeight > below && above > below;
+    menu.dataset.placement = up ? 'above' : 'below';
+    menu.style.maxHeight = Math.floor(up ? above : below) + 'px';
+  }
   function openMenu(button, last = false) {
     closeMenu();
     activePicker = button;
     button.parentElement.append(menu);
     updateOptions();
     menu.hidden = false;
+    positionMenu();
     button.setAttribute('aria-expanded', 'true');
     button.setAttribute('aria-controls', menu.id);
     const current = [...menu.children].find(option => option.dataset.symbol === selected);
-    (last ? menu.lastElementChild : current || menu.firstElementChild).focus();
+    (last ? menu.lastElementChild : current || menu.firstElementChild).focus({ preventScroll: true });
   }
   document.addEventListener('click', event => {
     const button = event.target.closest('[data-asset-picker]');
@@ -159,6 +185,10 @@
     if (activePicker && event.target !== activePicker && !menu.contains(event.target)) closeMenu();
   });
   document.addEventListener('zetag:asset-changed', () => closeMenu());
+  window.addEventListener('resize', positionMenu, { passive: true });
+  document.addEventListener('scroll', positionMenu, { passive: true, capture: true });
+  window.visualViewport?.addEventListener('resize', positionMenu, { passive: true });
+  window.visualViewport?.addEventListener('scroll', positionMenu, { passive: true });
   window.ZeTagTokens = Object.freeze({ assets, normalize, units, formatUnits, formatAmount, select, render, get selected() { return selected; } });
   render();
 })();

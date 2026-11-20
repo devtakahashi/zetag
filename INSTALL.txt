@@ -1,25 +1,18 @@
-ZeTag filled profile icon and watermark update
+ZeTag smart currency dropdown placement update
 
-1. Extract this ZIP.
-2. Upload the files to matching paths in your existing GitHub repository,
-   replacing the existing files. Keep other files already in the repository.
-3. Copy pay/index.html to the local pay folder beside backend.
-4. Run npx wrangler deploy from your existing backend folder.
-5. Wait for GitHub Pages to publish and refresh the website.
+Upload all files to matching paths in your GitHub repository, replacing the
+existing files. Copy pay/index.html into your local pay folder beside backend,
+then run npx wrangler deploy from the backend folder. Refresh after GitHub
+Pages finishes publishing. No database changes are needed.
 
-This package includes the previous token dropdown and wallet layout update.
-There are no database changes.
+Currency menus open below when there is room and flip above near the bottom
+of the visible screen. The placement also respects scrolling dialogs and the
+mobile keyboard viewport, and updates while scrolling or resizing. When
+space is limited on both sides, the options scroll within the available area.
+The menu stays borderless and token selection behaviour is preserved.
 
-New changes
-- Concept two is applied to mobile and desktop profile controls on the home,
-  profile and payment pages: filled person, overlapping dollar coin, and plus.
-- The saved-avatar behaviour is preserved. The icon appears before a claimed
-  profile is loaded and is restored after disconnecting.
-- The decorative Solana/Zelle page watermark is raised by 32px on desktop
-  and 20px on mobile. The Powered By row keeps its existing position.
-- Page cache versions are refreshed so the new stylesheet is requested.
+Includes the previous filled profile icon, raised watermark, wallet fitting,
+Display name removal and payment link copy icon changes.
 
-Validation
-All six profile SVGs were checked for valid XML, separate mask IDs, dollar
-and plus paths. Saved-avatar replacement and restoration code is unchanged.
-Real-device visual checking remains necessary after upload.
+Checks cover placement above and below, limited space, visual viewport and
+clipping ancestors. Real-device visual checking remains necessary.
