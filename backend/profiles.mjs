@@ -219,7 +219,7 @@ async function tokenBalance(request, db, rpcUrl, url) {
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
-      redirect: 'error',
+      redirect: 'manual',
       headers: { 'Content-Type': 'application/json' },
       signal: AbortSignal.timeout(5500),
       body: JSON.stringify({
@@ -230,6 +230,7 @@ async function tokenBalance(request, db, rpcUrl, url) {
           { encoding: 'jsonParsed', commitment: 'confirmed' }]
       })
     });
+    if (response.status >= 300 && response.status < 400) throw new Error('Solana RPC redirects are not allowed');
     if (!response.ok) throw new Error('Solana RPC unavailable');
     const result = await response.json();
     if (asset === 'SOL') {

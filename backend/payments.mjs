@@ -25,7 +25,8 @@ async function body(request) {
  const all=new Uint8Array(size);let offset=0;for(const p of parts){all.set(p,offset);offset+=p.length;}return JSON.parse(new TextDecoder().decode(all));
 }
 export async function rpc(env, method, params) {
- const response=await fetch(env.SOLANA_RPC_URL||'https://api.mainnet-beta.solana.com',{method:'POST',redirect:'error',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params}),signal:AbortSignal.timeout(12000)});
+ const response=await fetch(env.SOLANA_RPC_URL||'https://api.mainnet-beta.solana.com',{method:'POST',redirect:'manual',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params}),signal:AbortSignal.timeout(12000)});
+ if(response.status>=300&&response.status<400)throw Error('Solana RPC redirected. Configure the final RPC endpoint URL.');
  if(!response.ok)throw Error('Solana service unavailable');const data=await response.json();if(data.error)throw Error('Solana request failed');return data.result;
 }
 let checkedEndpoint='',checkedAt=0;
@@ -103,7 +104,7 @@ export async function payments(request,env,url) {
   await limit(request,db);
   if(path==='/rpc'&&request.method==='POST'){
    const data=await body(request);const {method,params}=data;
-   const methods=new Set(['getLatestBlockhash','getFeeForMessage','getMinimumBalanceForRentExemption','getBalance','getAccountInfo','getTokenAccountsByOwner','sendTransaction','getSignatureStatuses','getBlockHeight','getTransaction']);
+   const methods=new Set(['getLatestBlockhash','getFeeForMessage','getMinimumBalanceForRentExemption','getBalance','getAccountInfo','getTokenAccountsByOwner','sendTransaction','getSignatureStatuses','getBlockHeight','getTransaction','getSignaturesForAddress']);
    if(!methods.has(method)||!Array.isArray(params))return json({error:'Unsupported request'},400);
    await mainnet(env);const result=await rpc(env,method,params);return json({jsonrpc:'2.0',id:data.id,result});
   }

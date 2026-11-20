@@ -10,6 +10,7 @@
   const disconnect = get('wallet-disconnect');
   const historyAction = get('history-action');
   const rpcUrl = document.querySelector('meta[name="solana-rpc"]')?.content || 'https://api.mainnet-beta.solana.com';
+  const serverRpc = new URL('/pay/_payments/rpc', location.origin).href;
   const usdc = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
   const recentLimit = 20;
   const wallets = new Set();
@@ -373,7 +374,7 @@
     renderWallet(entry.name + ' was not detected. Enable its browser extension, then try Connect again.');
   };
 
-  async function rpc(method, params, signal, endpoint = rpcUrl) {
+  async function rpc(method, params, signal, endpoint = serverRpc) {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -391,7 +392,7 @@
     const balance = get('wallet-balance');
     balance.textContent = 'Loading…';
     status.textContent = '';
-    const providers = [...new Set([rpcUrl, 'https://solana-rpc.publicnode.com'])].map(endpoint => async signal => {
+    const providers = [...new Set([serverRpc, rpcUrl, 'https://solana-rpc.publicnode.com'])].map(endpoint => async signal => {
       if (asset === 'SOL') {
         const result = await rpc('getBalance', [owner, { commitment: 'confirmed' }], signal, endpoint);
         if (!Number.isSafeInteger(result.value) || result.value < 0) throw new Error('Invalid SOL balance');
