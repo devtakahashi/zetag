@@ -30,7 +30,7 @@ export const rpc = solanaRpc;
 let checkedEndpoint='',checkedAt=0;
 async function mainnet(env) {
  const endpoint=env.SOLANA_RPC_URL||'public';if(checkedEndpoint===endpoint&&Date.now()-checkedAt<300000)return;
- if(await rpc(env,'getGenesisHash',[])!=='5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp')throw Error('A Solana mainnet RPC is required');checkedEndpoint=endpoint;checkedAt=Date.now();
+ if(await rpc(env,'getGenesisHash',[])!=='5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d')throw Error('A Solana mainnet RPC is required');checkedEndpoint=endpoint;checkedAt=Date.now();
 }
 export async function digest(value){return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value)))].map(b=>b.toString(16).padStart(2,'0')).join('');}
 async function merchant(request,db) {
@@ -66,7 +66,9 @@ export function verifyTransfer(tx,intent) {
  let transferred=0n;
  for(const ix of instructions){const info=ix.parsed?.info;if(!info)continue;
   if(intent.asset==='SOL'&&ix.programId===SYSTEM&&ix.parsed.type==='transfer'&&info.source===payer&&info.destination===intent.recipient&&Number.isSafeInteger(info.lamports))transferred+=BigInt(info.lamports);
-  if(intent.asset==='USDC'&&ix.programId===TOKEN&&ix.parsed.type==='transferChecked'&&info.authority===payer&&info.mint===USDC&&info.tokenAmount?.decimals===6&&/^[0-9]+$/.test(info.tokenAmount?.amount||'')){
+  // Agave labels extra reference accounts as signers and uses multisigAuthority.
+  // Accept only our single reference layout with the payer still a real signer.
+  if(intent.asset==='USDC'&&ix.programId===TOKEN&&ix.parsed.type==='transferChecked'&&(info.authority===payer||(!info.authority&&info.multisigAuthority===payer&&keys[0]?.signer===true&&Array.isArray(info.signers)&&info.signers.length===1&&info.signers[0]===intent.reference))&&info.mint===USDC&&info.tokenAmount?.decimals===6&&/^[0-9]+$/.test(info.tokenAmount?.amount||'')){
    const index=keys.findIndex(k=>address(k)===info.destination);
    const destination=tx.meta.postTokenBalances?.find(b=>b.accountIndex===index&&b.owner===intent.recipient&&b.mint===USDC&&b.uiTokenAmount?.decimals===6);
    if(destination)transferred+=BigInt(info.tokenAmount.amount);
@@ -80,7 +82,7 @@ async function settle(db,env,row,signature) {
  const tx=await rpc(env,'getTransaction',[signature,{encoding:'jsonParsed',commitment:'finalized',maxSupportedTransactionVersion:0}]);
  if(!tx)return row;
  if(tx.meta?.err) throw Object.assign(Error('Transaction failed on Solana. No transfer was completed.'), { failed: true });
- if(!verifyTransfer(tx,row))throw Error('Transaction does not match this payment');
+ if(!verifyTransfer(tx,row))throw Object.assign(Error('Transaction does not match this payment'),{errorCode:'TRANSFER_MISMATCH'});
  await db.batch([
   db.prepare(`INSERT INTO payment_receipts (signature,intent_id,confirmed_at) VALUES (?,?,?) ON CONFLICT(signature) DO NOTHING`).bind(signature,row.id,Date.now()),
   db.prepare(`UPDATE payment_intents SET status='paid', signature=? WHERE id=? AND status='pending' AND EXISTS (SELECT 1 FROM payment_receipts WHERE signature=? AND intent_id=?)`).bind(signature,row.id,signature,row.id)
@@ -126,5 +128,5 @@ export async function payments(request,env,url) {
    for(const tx of found||[]){if(tx.err)continue;try{row=await settle(db,env,row,tx.signature);}catch{}if(row.status==='paid')break;}
   }else if(request.method!=='GET'||match[3])return json({error:'Method not allowed'},405);
   return json(view(row));
- }catch(error){const message=error.message||'Payment service unavailable';const invalid=/Invalid|valid |outside|claimed|different|long|does not match|too large|JSON/.test(message);return json({error:message,...(error.failed?{failed:true}:{})},invalid||error.failed?400:503);}
+ }catch(error){const message=error.message||'Payment service unavailable';const invalid=/Invalid|valid |outside|claimed|different|long|does not match|too large|JSON/.test(message);return json({error:message,...(error.errorCode?{errorCode:error.errorCode}:{}),...(error.failed?{failed:true}:{})},invalid||error.failed?400:503);}
 }
