@@ -837,7 +837,10 @@ header .zetag-nav svg.account-glyph-filled { fill: currentColor; stroke: none; }
 .payment-activity-list { padding: 0; list-style: none; }
 .payment-activity-list li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid #382b48; }
 
-.wallet-balance-values { display: flex; flex: 1 1 0; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; min-width: 0; }
-.wallet-balance-values #wallet-balance { flex: 0 1 auto; }
-.wallet-balance-row .wallet-balance-usd { flex: none; margin: 0; color: #7649ec; font-size: clamp(13px, 3.4vw, 16px); font-weight: 600; line-height: 1.4; }
+/* Keep the token amount, smaller USD value and selector in one row. */
+#wallet-overview .wallet-balance-content { display: grid; grid-template-columns: minmax(0, 1fr) max-content max-content; align-items: center; gap: 8px; }
+.wallet-balance-values { display: contents; }
+.wallet-balance-values #wallet-balance { grid-column: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wallet-balance-row .wallet-balance-usd { grid-column: 2; margin: 0; color: #7649ec; font-size: clamp(12px, 3.2vw, 16px); font-weight: 600; line-height: 1.4; white-space: nowrap; }
 .wallet-balance-row .wallet-balance-usd[hidden] { display: none; }
+#wallet-overview .wallet-balance-content > .asset-picker { grid-column: 3; }

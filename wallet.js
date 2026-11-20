@@ -394,7 +394,7 @@
     if (priceCache && Date.now() < priceCache.expires) return priceCache.data;
     if (pricePromise) return pricePromise;
     pricePromise = (async () => {
-      const response = await fetch(new URL('/pay/_payments/prices', location.origin), {signal:AbortSignal.timeout(8000)});
+      const response = await fetch(new URL('/pay/_payments/prices', location.origin), {signal:AbortSignal.timeout(12000)});
       if (!response.ok) throw new Error('USD price unavailable');
       const data = await response.json();
       for (const asset of ['SOL','USDC']) {
@@ -405,6 +405,27 @@
       return data;
     })();
     try { return await pricePromise; } finally { pricePromise = null; }
+  }
+  function fitBalanceRow() {
+    const fit = () => {
+      const value = get('wallet-balance');
+      if (!value?.clientWidth) return;
+      value.title = value.textContent;
+      value.style.fontSize = '';
+      let size = parseFloat(getComputedStyle(value).fontSize);
+      while (Number.isFinite(size) && size > 12 && value.scrollWidth > value.clientWidth + 1) {
+        size -= 1; value.style.fontSize = size + 'px';
+      }
+    };
+    if (window.requestAnimationFrame) window.requestAnimationFrame(fit); else fit();
+  }
+  if (typeof ResizeObserver === 'function') {
+    let lastWidth = -1;
+    const row = get('wallet-balance')?.closest('.wallet-balance-content');
+    if (row) new ResizeObserver(entries => {
+      const width = entries[0]?.contentRect.width;
+      if (width !== lastWidth) { lastWidth = width; fitBalanceRow(); }
+    }).observe(row);
   }
   function dollars(amount, asset, price) {
     const rate = BigInt(price.toFixed(8).replace('.', ''));
@@ -417,18 +438,18 @@
   async function updateDollars() {
     const el = get('wallet-balance-usd'); if (!el) return;
     const owner = address, asset = ZeTagTokens.selected, amount = balances[asset];
-    el.hidden = true; el.textContent = '';
+    el.hidden = true; el.textContent = ''; fitBalanceRow();
     if (!owner || amount === null || amount === undefined) return;
-    if (amount === 0n) { el.textContent = '≈ $0.00'; el.title = 'Estimated USD value'; el.hidden = false; return; }
+    if (amount === 0n) { el.textContent = '≈ $0.00'; el.title = 'Estimated USD value'; el.hidden = false; fitBalanceRow(); return; }
     try {
       const data = await loadPrices();
       if (owner !== address || asset !== ZeTagTokens.selected || amount !== balances[asset]) return;
       el.textContent = dollars(amount, asset, data.prices[asset].usd);
-      el.title = 'Estimated USD value · price updated ' + new Date(data.prices[asset].updatedAt).toLocaleTimeString();
-      el.hidden = false;
+      el.title = 'Estimated USD value · quote time ' + new Date(data.prices[asset].updatedAt).toLocaleTimeString();
+      el.hidden = false; fitBalanceRow();
     } catch {
       if (owner === address && asset === ZeTagTokens.selected && amount === balances[asset]) {
-        el.textContent = 'USD unavailable'; el.title = 'The token balance is available, but its market price could not be loaded.'; el.hidden = false;
+        el.textContent = '$—'; el.title = 'The token balance is available, but its market price could not be loaded.'; el.hidden = false; fitBalanceRow();
       }
     }
   }
