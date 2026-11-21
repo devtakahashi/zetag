@@ -6,16 +6,16 @@
   <meta name="description" content="Claim a ZeTag and make it yours.">
   <title>Profile | ZeTag</title>
   <link rel="icon" type="image/png" href="../zetag-icon.png">
-  <link rel="stylesheet" href="../style.css?v=participants15">
+  <link rel="stylesheet" href="../style.css?v=history16">
   <link rel="stylesheet" href="profile.css">
-  <script src="../vendor/solana-payments.js?v=participants15" defer></script>
-<script src="../payments.js?v=participants15" defer></script>
-<script src="../tokens.js?v=participants15" defer></script>
-<script src="../profile/ui.js?v=participants15" defer></script>
-  <script src="profile.js?v=participants15" defer></script>
-<script src="../wallet.js?v=participants15" defer></script>
+  <script src="../vendor/solana-payments.js?v=history16" defer></script>
+<script src="../payments.js?v=history16" defer></script>
+<script src="../tokens.js?v=history16" defer></script>
+<script src="../profile/ui.js?v=history16" defer></script>
+  <script src="profile.js?v=history16" defer></script>
+<script src="../wallet.js?v=history16" defer></script>
 <link rel="stylesheet" href="../profile/profile.css">
-<link rel="stylesheet" href="../profile/premium.css?v=participants15">
+<link rel="stylesheet" href="../profile/premium.css?v=history16">
 </head>
 <body>
 <header>
@@ -75,7 +75,7 @@
 <dialog id="history-dialog" aria-labelledby="history-title">
   <div class="dialog-heading"><h2 id="history-title">Transaction History</h2><form method="dialog"><button class="wallet-close" aria-label="Close">×</button></form></div>
   <p id="history-status" class="help" role="status"></p>
-  <ul id="history-list" class="history-list"></ul>
+  <div class="history-filters" role="group" aria-label="Filter transactions"><button type="button" data-history-filter="all" aria-pressed="true">All</button><button type="button" data-history-filter="sent" aria-pressed="false">Sent</button><button type="button" data-history-filter="received" aria-pressed="false">Received</button></div><ul id="history-list" class="history-list"></ul>
   <button id="history-action" class="secondary" type="button">Connect Wallet</button>
 </dialog>
 

@@ -5,9 +5,9 @@
 <meta name="description" content="Send and request payments by tag with ZeTag.">
 <title>ZeTag | Pay by tag</title>
 <link rel="icon" type="image/png" href="zetag-icon.png">
-<link rel="stylesheet" href="style.css?v=participants15">
+<link rel="stylesheet" href="style.css?v=history16">
 <link rel="stylesheet" href="profile/profile.css">
-<link rel="stylesheet" href="profile/premium.css?v=participants15">
+<link rel="stylesheet" href="profile/premium.css?v=history16">
 <header>
   <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"></span>ZeTag</a>
   <div class="wallet-tools zetag-nav">
@@ -72,7 +72,7 @@
 <dialog id="history-dialog" aria-labelledby="history-title">
   <div class="dialog-heading"><h2 id="history-title">Transaction History</h2><form method="dialog"><button class="wallet-close" aria-label="Close">×</button></form></div>
   <p id="history-status" class="help" role="status"></p>
-  <ul id="history-list" class="history-list"></ul>
+  <div class="history-filters" role="group" aria-label="Filter transactions"><button type="button" data-history-filter="all" aria-pressed="true">All</button><button type="button" data-history-filter="sent" aria-pressed="false">Sent</button><button type="button" data-history-filter="received" aria-pressed="false">Received</button></div><ul id="history-list" class="history-list"></ul>
   <button id="history-action" class="secondary" type="button">Connect Wallet</button>
 </dialog>
 <main>
@@ -125,13 +125,13 @@
     <button id="share-edit" type="button">Edit request</button>
   </div>
 </dialog>
-<script src="vendor/solana-payments.js?v=participants15" defer></script>
-<script src="payments.js?v=participants15" defer></script>
-<script src="tokens.js?v=participants15" defer></script>
+<script src="vendor/solana-payments.js?v=history16" defer></script>
+<script src="payments.js?v=history16" defer></script>
+<script src="tokens.js?v=history16" defer></script>
 <script src="vendor/qrcode.js" defer></script>
-<script src="request-data.js?v=participants15" defer></script>
+<script src="request-data.js?v=history16" defer></script>
 <script src="saved-pages.js" defer></script>
-<script src="app.js?v=participants15" defer></script>
+<script src="app.js?v=history16" defer></script>
 <script src="appearance.js" defer></script>
 <dialog id="receipt-dialog" class="request-card" aria-labelledby="receipt-title">
   <form method="dialog" class="request-close"><button class="wallet-close" aria-label="Close">×</button></form>
@@ -143,6 +143,6 @@
   <textarea id="receipt-text" readonly hidden aria-label="Receipt text"></textarea>
   <p class="request-feedback" id="receipt-feedback" role="status"></p>
 </dialog>
-<script src="profile/ui.js?v=participants15" defer></script>
-<script src="wallet.js?v=participants15" defer></script>
+<script src="profile/ui.js?v=history16" defer></script>
+<script src="wallet.js?v=history16" defer></script>
 </html>

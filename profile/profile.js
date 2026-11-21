@@ -378,11 +378,7 @@
       empty.textContent = rows.length ? '' : 'No confirmed payments ' + kind + ' yet.';
       empty.hidden = Boolean(rows.length);
       for (const row of rows) {
-        const item = document.createElement('li');
-        const detail = document.createElement('span');
-        detail.textContent = (kind === 'sent' ? 'To ' + row.name : 'Payment received') + ' · ' + row.amount + ' ' + row.asset;
-        const receipt = document.createElement('a'); receipt.textContent = 'Receipt'; receipt.href = 'https://explorer.solana.com/tx/' + encodeURIComponent(row.signature); receipt.target = '_blank'; receipt.rel = 'noopener';
-        item.append(detail, receipt); list.append(item);
+        list.append(ZeTagUI.activityRow({peer:row.peer,amount:row.amount,asset:row.asset,inbound:kind==='received',note:row.note,blockTime:row.createdAt/1000,signature:row.signature}));
       }
     } catch { if (version === activityRevision) empty.textContent = 'Could not load payment activity. Reopen this tab to retry.'; }
   }

@@ -883,3 +883,34 @@ header .zetag-nav svg.account-glyph-filled { fill: currentColor; stroke: none; }
 .payment-review-dialog .dialog-heading h2 { flex:1; }
 #zepay-dialog .transfer-parties { margin:24px 0; }
 @media(max-width:400px) { .transfer-parties { gap:8px; } .transfer-person { gap:6px; } .transfer-person .mini-avatar { width:32px; height:32px; } .transfer-person strong { font-size:12px; } .transfer-person small,.transfer-connector { font-size:10px; } }
+
+/* Loop a clipped train of three arrows between the participants. */
+.transfer-role { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.transfer-connector { position:relative; width:58px; height:28px; overflow:hidden; color:#9d78ff; flex:none; }
+.transfer-connector > span { position:absolute; top:-6px; left:0; font-size:32px; font-weight:500; line-height:32px; opacity:0; animation:transfer-travel 1.8s linear infinite paused; }
+.transfer-connector > span:nth-child(2) { animation-delay:.22s; }
+.transfer-connector > span:nth-child(3) { animation-delay:.44s; }
+dialog[open] .transfer-connector > span { animation-play-state:running; }
+@keyframes transfer-travel { 0% { transform:translateX(-18px); opacity:0; } 16% { opacity:1; } 76% { opacity:1; } 100% { transform:translateX(65px); opacity:0; } }
+@media(prefers-reduced-motion:reduce) { .transfer-connector { display:flex; align-items:center; justify-content:center; gap:3px; } .transfer-connector > span { position:static; opacity:1; animation:none; font-size:25px; } }
+/* Counterparty-led activity cards, shared by wallet and profile history. */
+.history-filters { display:flex; gap:6px; margin:18px 0 8px; padding:4px; background:#ffffff04; border:1px solid #ffffff0b; border-radius:12px; }
+.history-filters button { flex:1; border:0; padding:8px 10px; background:transparent; color:#b9accb; border-radius:8px; font:inherit; font-size:12px; cursor:pointer; }
+.history-filters button[aria-pressed="true"] { background:#7649ec24; color:#e7ddff; }
+.history-list { max-height:min(52dvh,460px); padding:0; margin:4px 0 18px; }
+.history-list .activity-row,.payment-activity-list .activity-row { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:12px; padding:18px 0; border-bottom:1px solid #ffffff0e; }
+.activity-row[hidden] { display:none!important; }
+.activity-person { display:flex; align-items:flex-start; gap:12px; min-width:0; }
+.activity-person .mini-avatar { display:flex; align-items:center; justify-content:center; width:42px; height:42px; border-radius:50%; flex:none; background:#7649ec24; overflow:hidden; font-size:14px; color:#d8c8ef; }
+.activity-person .mini-avatar img { width:100%; height:100%; object-fit:cover; }
+.activity-detail { display:flex; flex-direction:column; gap:5px; min-width:0; }
+.activity-detail > strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14px; font-weight:650; color:#f2eafa; }
+.activity-note { font-size:12px; color:#b8aac9; overflow-wrap:anywhere; }
+.activity-date { font-size:10px; color:#887b9b; }
+.activity-value { display:flex; flex-direction:column; align-items:flex-end; gap:9px; text-align:right; }
+.activity-value > strong { font-size:14px; font-weight:650; color:#f2eafa; white-space:nowrap; }
+.activity-value > .activity-inbound { color:#95d5b8; }
+.history-list .activity-receipt,.payment-activity-list .activity-receipt { position:static; display:inline-flex; align-items:center; width:auto; padding:0; margin:0; border:0; background:none; color:#b49adf; font:inherit; font-size:11px; cursor:pointer; text-decoration:none; }
+.history-list .activity-receipt:hover,.payment-activity-list .activity-receipt:hover { color:#fff; text-decoration:underline; }
+#history-action { width:100%; min-height:42px; }
+@media(max-width:400px) { .activity-person { gap:8px; } .activity-person .mini-avatar { width:32px; height:32px; } .activity-detail > strong,.activity-value > strong { font-size:12px; } .activity-date { font-size:9px; } .transfer-connector { width:44px; } }

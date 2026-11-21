@@ -521,6 +521,29 @@
     return sum(tx.meta.postTokenBalances) - sum(tx.meta.preTokenBalances);
   }
 
+  function historyPeer(tx,owner,asset,inbound) {
+    const keys=tx.transaction?.message?.accountKeys||[],address=key=>typeof key==='string'?key:key?.pubkey;
+    const owners=new Map();for(const balance of [...(tx.meta?.preTokenBalances||[]),...(tx.meta?.postTokenBalances||[])])if(balance.owner&&balance.mint===usdc)owners.set(address(keys[balance.accountIndex]),balance.owner);
+    const peers=new Set();const instructions=[...(tx.transaction?.message?.instructions||[]),...(tx.meta?.innerInstructions||[]).flatMap(group=>group.instructions||[])];
+    for(const instruction of instructions){const info=instruction.parsed?.info;if(!info||!['transfer','transferChecked'].includes(instruction.parsed.type))continue;
+      if(asset==='SOL'&&instruction.programId==='11111111111111111111111111111111'){
+        if(inbound&&info.destination===owner)peers.add(info.source);else if(!inbound&&info.source===owner)peers.add(info.destination);
+      }else if(asset==='USDC'&&instruction.programId==='TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'){
+        const source=owners.get(info.source),destination=owners.get(info.destination);
+        if(inbound&&destination===owner&&source&&source!==owner)peers.add(source);else if(!inbound&&source===owner&&destination&&destination!==owner)peers.add(destination);
+      }
+    }
+    peers.delete(owner);return {wallet:peers.size===1?[...peers][0]:'',label:peers.size>1?'Multiple wallets':'Wallet activity',references:keys.map(address)};
+  }
+  let historyFilter='all';
+  function applyHistoryFilter(){for(const row of get('history-list').children)row.hidden=historyFilter!=='all'&&row.dataset.direction!==historyFilter;}
+  for(const button of document.querySelectorAll('[data-history-filter]'))button.onclick=()=>{historyFilter=button.dataset.historyFilter;for(const control of document.querySelectorAll('[data-history-filter]'))control.setAttribute('aria-pressed',String(control===button));applyHistoryFilter();};
+  function historyCard(entry,metadata){
+    const {item,amount,inbound,asset,peer}=entry;
+    const person=metadata?.profiles?.find(profile=>profile.wallet===peer.wallet)||{wallet:peer.wallet};
+    const record=metadata?.payments?.find(payment=>payment.asset===asset&&(payment.signature===item.signature||peer.references.includes(payment.reference)&&((payment.sender===entry.owner&&payment.recipient===peer.wallet)||(payment.recipient===entry.owner&&payment.sender===peer.wallet))));
+    return ZeTagUI.activityRow({peer:person,peerLabel:peer.label,amount:format(amount,asset),asset,inbound,note:record?.note||'',blockTime:item.blockTime,signature:item.signature,onReceipt:()=>openReceipt(item,amount,inbound,asset)});
+  }
   function openReceipt({ signature, blockTime }, amount, inbound, asset) {
     const direction = asset === 'SOL' ? (inbound ? 'Balance increase' : 'Balance decrease') : (inbound ? 'Received' : 'Sent');
     const date = blockTime ? new Date(blockTime * 1000) : null;
@@ -591,7 +614,7 @@
       let sent = 0n;
       let received = 0n;
       let missing = false;
-      const transactions = [];
+      const transactions = [];const historyEntries=[];
       for (let i = 0; i < recent.length; i += 4) {
         const chunk = recent.slice(i, i + 4);
         const results = await Promise.allSettled(chunk.map(item =>
@@ -600,36 +623,19 @@
         results.forEach((result, index) => {
           if (result.status !== 'fulfilled' || !result.value) { missing = true; return; }
           const item = chunk[index];
-          const change = deltaFor(result.value, owner, byAccount, asset);
+          let change;try{change=deltaFor(result.value, owner, byAccount, asset);}catch{missing=true;return;}
           if (!change) return;
           const inbound = change > 0n;
           const amount = inbound ? change : -change;
           if (inbound) received += amount; else sent += amount;
-          const row = document.createElement('li');
-          const link = document.createElement('a');
-          link.href = 'https://explorer.solana.com/tx/' + encodeURIComponent(item.signature);
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          const label = document.createElement('span');
-          label.textContent = asset === 'SOL' ? (inbound ? 'Balance increase' : 'Balance decrease') : (inbound ? 'Received' : 'Sent');
-          if (item.blockTime) {
-            const date = document.createElement('small');
-            date.textContent = new Date(item.blockTime * 1000).toLocaleString();
-            label.append(date);
-          }
-          link.append(label, (inbound ? '+' : '−') + format(amount, asset));
-          row.append(link);
-          if (item.confirmationStatus === 'finalized' || item.confirmationStatus === 'confirmed') {
-            transactions.push({ signature: item.signature, amount: format(amount, asset), inbound });
-            const receiptButton = document.createElement('button');
-            receiptButton.type = 'button';
-            receiptButton.className = 'receipt-button';
-            receiptButton.textContent = 'Receipt';
-            receiptButton.onclick = () => openReceipt(item, amount, inbound, asset);
-            row.append(receiptButton);
-          }
-          list.append(row);
+          const entry={owner,item,amount,inbound,asset,peer:historyPeer(result.value,owner,asset,inbound)};historyEntries.push(entry);
+          if(window.ZeTagUI?.activityRow)list.append(historyCard(entry));
+          if(item.confirmationStatus==='finalized'||item.confirmationStatus==='confirmed')transactions.push({signature:item.signature,amount:format(amount,asset),inbound});
+          applyHistoryFilter();
         });
+      }
+      if(window.ZeTagUI?.api&&historyEntries.length){
+        try{const metadata=await ZeTagUI.api('/_history',{wallets:[...new Set(historyEntries.map(entry=>entry.peer.wallet).filter(Boolean))].slice(0,40)},signal);if(request!==controller||owner!==address)return;list.replaceChildren(...historyEntries.map(entry=>historyCard(entry,metadata)));applyHistoryFilter();}catch{/* Raw wallet history remains available without a profile session. */}
       }
       if (request !== controller) return;
       document.dispatchEvent(new CustomEvent('zetag:wallet-activity', { detail: { owner, transactions } }));

@@ -99,7 +99,7 @@ async function limit(request,db){
 }
 export async function payments(request,env,url) {
  const route=url.pathname.slice('/pay/_payments'.length);
- if(route==='/connection'&&request.method==='GET')return json({rpcConfigured:Boolean(env.SOLANA_RPC_URL),paymentsEnabled:env.PAYMENTS_ENABLED==='true',paymentVersion:'participants15'});
+ if(route==='/connection'&&request.method==='GET')return json({rpcConfigured:Boolean(env.SOLANA_RPC_URL),paymentsEnabled:env.PAYMENTS_ENABLED==='true',paymentVersion:'history16',paymentProtocol:2});
  if(route==='/prices'&&request.method==='GET'){
   try{return json(await marketPrices(env));}catch{return json({error:'USD market prices are temporarily unavailable.'},503);}
  }

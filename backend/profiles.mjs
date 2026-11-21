@@ -247,8 +247,8 @@ export async function profiles(request, db, url, rpcUrl) {
         const row = await db.prepare('SELECT url FROM payment_pages WHERE wallet=?').bind(wallet).first();
         return json({ url: row?.url ?? null });
       }
-      const records = await db.prepare(`SELECT id,tag,label,asset,amount,sender,recipient,signature,created_at AS createdAt FROM payment_intents WHERE status='paid' AND (sender=?1 OR recipient=?1) ORDER BY created_at DESC LIMIT 50`).bind(wallet).all();
-      return json({ payments: records.results.map(row => ({ id: row.id, tag: row.tag, name: row.label, asset: row.asset, amount: row.amount, signature: row.signature, createdAt: row.createdAt, direction: row.sender === wallet ? 'sent' : 'received' })) });
+      const records = await db.prepare(`SELECT i.id,i.tag,i.label,i.note,i.asset,i.amount,i.sender,i.recipient,i.signature,i.created_at AS createdAt,p.wallet AS peerWallet,p.tag AS peerTag,p.avatar AS peerAvatar FROM payment_intents i LEFT JOIN profiles p ON p.wallet=CASE WHEN i.sender=?1 THEN i.recipient ELSE i.sender END WHERE i.status='paid' AND (i.sender=?1 OR i.recipient=?1) ORDER BY i.created_at DESC LIMIT 50`).bind(wallet).all();
+      return json({ payments: records.results.map(row => ({ id: row.id, tag: row.tag, name: row.label, note:row.note, peer:{wallet:row.peerWallet||(row.sender===wallet?row.recipient:row.sender),tag:row.peerTag||'',avatar:row.peerAvatar||''}, asset: row.asset, amount: row.amount, signature: row.signature, createdAt: row.createdAt, direction: row.sender === wallet ? 'sent' : 'received' })) });
     }
     if (path === '/_balance') return tokenBalance(request, db, rpcUrl, url);
     if (path === '/_search') return search(db, url);
@@ -278,6 +278,16 @@ export async function profiles(request, db, url, rpcUrl) {
     return response;
   }
   const input = await readBody(request);
+  if (path === '/_history') {
+    const wallet=await sessionWallet(request,db);
+    if(!wallet||wallet!==request.headers.get('X-ZeTag-Wallet'))return json({error:'Wallet sign-in required.'},401);
+    if(!Array.isArray(input?.wallets)||input.wallets.length>40||input.wallets.some(value=>!walletKey(value)))return json({error:'Invalid history wallets.'},400);
+    const wallets=[...new Set(input.wallets)];
+    const people=wallets.length?await db.prepare('SELECT wallet,tag,avatar FROM profiles WHERE wallet IN ('+wallets.map(()=>'?').join(',')+')').bind(...wallets).all():{results:[]};
+    const records=await db.prepare('SELECT reference,signature,sender,recipient,asset,units,note,status FROM payment_intents WHERE sender=?1 OR recipient=?1 ORDER BY created_at DESC LIMIT 100').bind(wallet).all();
+    // Read-only enrichment. These records never mark a transaction as settled.
+    return json({profiles:people.results,payments:records.results});
+  }
   if (path === '/_page') {
     const wallet = await sessionWallet(request, db);
     if (!wallet || wallet !== request.headers.get('X-ZeTag-Wallet')) return json({ error: 'Wallet sign-in required.' }, 401);

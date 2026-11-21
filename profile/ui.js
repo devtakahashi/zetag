@@ -235,5 +235,21 @@
   });
   setInterval(() => { if (!document.hidden) void refreshProfile(); }, 12000);
 
-  window.ZeTagUI = Object.freeze({ api, avatar, badge, fmtTime, emojiPicker });
+  function activityRow(data) {
+    const row=document.createElement('li');row.className='activity-row';row.dataset.direction=data.inbound?'received':'sent';
+    const identity=document.createElement('div');identity.className='activity-person';identity.append(avatar(data.peer,'avatar-contact'));
+    const detail=document.createElement('div');detail.className='activity-detail';
+    const title=document.createElement('strong');const wallet=data.peer?.wallet;
+    const peer=data.peer?.tag?'@'+data.peer.tag:wallet?wallet.slice(0,4)+'…'+wallet.slice(-4):data.peerLabel||'Wallet activity';
+    title.textContent=(data.peer?.tag||wallet?(data.inbound?'From ':'To '):'')+peer;
+    const note=document.createElement('span');note.className='activity-note';note.textContent=data.note||'No note recorded';
+    const date=document.createElement('time');date.className='activity-date';
+    if(data.blockTime){const instant=new Date(data.blockTime*1000);date.dateTime=instant.toISOString();date.textContent=instant.toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});}else date.textContent='Date unavailable';
+    detail.append(title,note,date);identity.append(detail);
+    const value=document.createElement('div');value.className='activity-value';const amount=document.createElement('strong');amount.textContent=(data.inbound?'+':'−')+data.amount+' '+data.asset;amount.className=data.inbound?'activity-inbound':'';
+    const receipt=document.createElement(data.onReceipt?'button':'a');receipt.className='activity-receipt';receipt.textContent='Receipt ↗';
+    if(data.onReceipt){receipt.type='button';receipt.onclick=data.onReceipt;}else{receipt.href='https://explorer.solana.com/tx/'+encodeURIComponent(data.signature);receipt.target='_blank';receipt.rel='noopener noreferrer';}
+    value.append(amount,receipt);row.append(identity,value);return row;
+  }
+  window.ZeTagUI = Object.freeze({ api, avatar, badge, fmtTime, emojiPicker, activityRow });
 })();

@@ -12,12 +12,12 @@
   const el=document.createElement('div');el.className='transfer-person';
   const face=window.ZeTagUI?.avatar?ZeTagUI.avatar(profile,'avatar-contact'):document.createElement('span');
   if(!window.ZeTagUI?.avatar){face.className='mini-avatar avatar-contact';face.textContent=(profile?.tag||label).slice(0,2).toUpperCase();}
-  const text=document.createElement('span');text.className='transfer-person-text';const caption=document.createElement('small');caption.textContent=role;
+  const text=document.createElement('span');text.className='transfer-person-text';const caption=document.createElement('small');caption.className='transfer-role';caption.textContent=role;
   const tag=document.createElement('strong');tag.textContent=profile?.tag?'@'+profile.tag:label;tag.title=tag.textContent;text.append(caption,tag);el.append(face,text);return el;
  }
  async function parties(target,receiver,sender=ZeTagWallet.address){
   const run={};partyRuns.set(target,run);const short=value=>value?value.slice(0,4)+'…'+value.slice(-4):'Connect wallet';
-  const draw=owner=>{if(partyRuns.get(target)!==run)return;const connector=document.createElement('span');connector.className='transfer-connector';connector.textContent='Sending to';target.replaceChildren(party(owner,short(sender),'From'),connector,party(receiver,receiver?.name||'Recipient','To'));};
+  const draw=owner=>{if(partyRuns.get(target)!==run)return;const connector=document.createElement('span');connector.className='transfer-connector';connector.setAttribute('role','img');connector.setAttribute('aria-label','Sending to');for(let i=0;i<3;i++){const arrow=document.createElement('span');arrow.textContent='›';arrow.setAttribute('aria-hidden','true');connector.append(arrow);}target.replaceChildren(party(owner,short(sender),'From'),connector,party(receiver,receiver?.name||'Recipient','To'));};
   draw(null);
   if(sender&&sender===ZeTagWallet.address&&window.ZeTagUI?.api){try{const me=await ZeTagUI.api('/_me');if(me.wallet===sender)draw(me.profile);}catch{}}
  }
@@ -41,7 +41,7 @@
   finally{checking=false;get('check').disabled=false;clearTimeout(pollTimer);if (pending && dialog.open && pollAttempts++ < 30) pollTimer=setTimeout(()=>{if (!document.hidden) void check();},2000);}
  }
  function render(data){get('back').hidden=false;get('title').textContent='Review payment';dialog.dataset.state='review';clearTimeout(pollTimer);pollAttempts=0;intent=data;plan=null;get('confirm').hidden=false;get('confirm').disabled=true;get('check').hidden=true;get('receipt').hidden=true;get('return').hidden=true;void reviewPeople(data);void estimateUsd(data);get('total').textContent=ZeTagTokens.formatAmount(data.amount,data.asset)+' '+data.asset;get('note').textContent=data.note?'For '+data.note:'';get('note').hidden=!data.note;get('fee').textContent='Calculating…';get('rent').textContent='Calculating…';get('status').textContent='';if(!dialog.open)dialog.showModal();}
- async function begin(input){backAction=typeof input.onBack==='function'?input.onBack:null;
+ async function begin(input){const service=await api('connection');if(!(service.paymentProtocol>=2))throw Error('The payment backend update is not live yet. Run START-HERE.cmd, then check the existing payment again.');backAction=typeof input.onBack==='function'?input.onBack:null;
   if(sending)throw Error('A payment is already in progress');
   if(pending){render(await api('intents/'+pending.id));get('confirm').hidden=true;get('check').hidden=false;get('status').textContent='Check your previous payment before starting another.';await check();return;}
   if(!ZeTagWallet.address){document.querySelector('#wallet-button').click();throw Error('Connect your wallet, then review the payment again.');}
