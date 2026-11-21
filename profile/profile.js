@@ -612,8 +612,11 @@
     payForm.hidden = false;
     if (pay.open) payAmount.focus();
   };
+  let payPreparing=false;
+  payForm.addEventListener('change',event=>{if(event.target.name==='purpose')ZeTagPayments.setPurpose(get('zepay-parties'),new FormData(payForm).get('purpose')||'');});
   payForm.onsubmit = async event => {
     event.preventDefault();
+    if(payPreparing)return;
     const amount = payAmount.value.trim();
     if (!ZeTagTokens.normalize(amount, ZeTagTokens.selected)) {
       payStatus.textContent = 'Enter a positive ' + ZeTagTokens.selected + ' amount with up to ' + ZeTagTokens.assets[ZeTagTokens.selected].decimals + ' decimal places.';
@@ -627,9 +630,10 @@
     }
     const purpose = new FormData(payForm).get('purpose');
     const note = payNote.value.trim();
-    pay.close();
-    try { await ZeTagPayments.begin({ onBack:()=>pay.showModal(), tag: current.tag, amount: ZeTagTokens.normalize(amount, ZeTagTokens.selected), asset: ZeTagTokens.selected, note: [purpose, note].filter(Boolean).join(' · ').slice(0, 100) }); }
-    catch(error) { pay.showModal(); payStatus.textContent = error.message; }
+    payPreparing=true;const submit=payForm.querySelector('button[type="submit"]');submit.disabled=true;submit.setAttribute('aria-busy','true');
+    try { await ZeTagPayments.begin({ onReady:()=>pay.close(), onBack:()=>pay.showModal(), tag: current.tag, amount: ZeTagTokens.normalize(amount, ZeTagTokens.selected), asset: ZeTagTokens.selected, note: [purpose, note].filter(Boolean).join(' · ').slice(0, 100) }); }
+    catch(error) { if(!pay.open)pay.showModal(); payStatus.textContent = error.message; }
+    finally { payPreparing=false;submit.disabled=false;submit.removeAttribute('aria-busy'); }
 
   };
 

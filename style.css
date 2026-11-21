@@ -956,3 +956,30 @@ dialog[open] .transfer-connector > span { animation-play-state:running; }
 @keyframes wallet-verified { 0%,85% { opacity:0; transform:scale(.5); } 95%,100% { opacity:1; transform:scale(1); } }
 @media(prefers-reduced-motion:reduce) { .is-celebrating .wallet-flap,.is-celebrating .wallet-coin,.is-celebrating .wallet-seal { animation:none; } }
 @media(max-width:400px) { .transfer-parties .mini-avatar { width:42px; height:42px; } .transfer-parties .transfer-person strong { font-size:12px; } .wallet-scene { transform:scale(.9); margin-top:-2px; margin-bottom:0; } }
+
+/* Quiet labels, a centered purpose, and a compact branded success moment. */
+.transfer-step { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.transfer-route { display:flex; flex-direction:column; align-items:center; gap:7px; width:108px; min-width:0; }
+.transfer-route .transfer-connector { align-self:center; margin:8px 0 0; }
+.transfer-purpose { display:flex; flex-direction:column; align-items:center; gap:7px; max-width:100%; }
+.purpose-chip { display:inline-flex; align-items:center; justify-content:center; gap:6px; max-width:100%; padding:6px 10px; border:1px solid #ab7fff25; border-radius:999px; background:linear-gradient(130deg,#7649ec1a,#bb8dff0a); box-shadow:inset 0 1px #ffffff06; color:#d9c8f0; font-size:11px; font-weight:600; white-space:nowrap; }
+.purpose-chip > span:first-child { font-size:13px; line-height:1; }
+.purpose-detail { display:block; max-width:120px; color:#a897b9; font-size:10px; line-height:1.5; text-align:center; overflow-wrap:anywhere; }
+.payment-review-dialog .transfer-details { margin-bottom:12px; }
+.payment-review-dialog .transfer-progress { margin-top:18px; margin-bottom:14px; }
+.payment-review-dialog[data-state="paid"] .transfer-progress { margin-top:16px; margin-bottom:4px; }
+.transfer-success { padding:0 0 2px; }
+.wallet-scene { width:190px; height:132px; margin:0 auto 4px; transform:none; }
+.wallet-illustration { position:absolute; width:230px; height:178px; top:-8px; left:5px; transform:scale(.78); transform-origin:top left; perspective:600px; }
+.wallet-brand { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:7px; color:#dec8ff; opacity:.24; transform:rotate(-9deg); pointer-events:none; }
+.wallet-brand svg { width:33px; height:28px; }
+.wallet-brand b { font-size:31px; font-weight:800; letter-spacing:-.075em; }
+#transfer-success-recipient .mini-avatar { width:48px; height:48px; }
+.success-total { margin-top:18px; }
+.success-note { margin:14px 0 4px; }
+.success-note .purpose-detail { max-width:250px; }
+@media(max-width:400px) { .transfer-route { width:82px; gap:5px; } .purpose-chip { font-size:10px; padding:5px 8px; } .purpose-detail { max-width:90px; } .wallet-scene { transform:none; margin-top:0; margin-bottom:4px; } }
+
+#zepay-form .primary[aria-busy="true"]::after { content:''; display:inline-block; width:12px; height:12px; margin-left:9px; border:2px solid #ffffff50; border-top-color:#fff; border-radius:50%; vertical-align:middle; animation:review-preparing .7s linear infinite; }
+@keyframes review-preparing { to { transform:rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { #zepay-form .primary[aria-busy="true"]::after { animation:none; } }
