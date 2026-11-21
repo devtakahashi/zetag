@@ -56,13 +56,15 @@ async function create(db,input,shop) {
  await db.prepare(`INSERT INTO payment_intents (id,recipient,sender,tag,asset,amount,units,reference,label,note,created_at,expires,merchant_id,merchant_order,return_url,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(...['id','recipient','sender','tag','asset','amount','units','reference','label','note','created_at','expires','merchant_id','merchant_order','return_url','status'].map(k=>row[k])).run();return row;
 }
 // Verify the actual finalized transfer, not a browser success callback or wallet balance.
-export function verifyTransfer(tx,intent) {
- if(!tx||tx.meta?.err||!tx.blockTime||tx.blockTime*1000<intent.created_at-60000||tx.blockTime*1000>intent.expires+30000)return false;
+export function verifyTransfer(tx,intent,diagnose=()=>{}) {
+ const fail=reason=>{diagnose(reason);return false;};
+ if(!tx||tx.meta?.err||!tx.blockTime)return fail('Finalized transaction details are incomplete.');
+ if(tx.blockTime*1000<intent.created_at-60000||tx.blockTime*1000>intent.expires+30000)return fail('The transaction is outside this payment’s time window.');
  const keys=tx.transaction?.message?.accountKeys||[];
  const address=k=>typeof k==='string'?k:k.pubkey;
- if(!keys.some(k=>address(k)===intent.reference))return false;
- const payer=address(keys[0]);if(!key(payer)||(intent.sender&&payer!==intent.sender))return false;
- const instructions=tx.transaction?.message?.instructions||[];
+ if(!keys.some(k=>address(k)===intent.reference))return fail('The transaction has a different payment reference.');
+ const payer=address(keys[0]);if(!key(payer)||(intent.sender&&payer!==intent.sender))return fail('The transaction has a different sending wallet.');
+ const instructions=[...(tx.transaction?.message?.instructions||[]),...(tx.meta.innerInstructions||[]).flatMap(group=>group.instructions||[])];
  let transferred=0n;
  for(const ix of instructions){const info=ix.parsed?.info;if(!info)continue;
   if(intent.asset==='SOL'&&ix.programId===SYSTEM&&ix.parsed.type==='transfer'&&info.source===payer&&info.destination===intent.recipient&&Number.isSafeInteger(info.lamports))transferred+=BigInt(info.lamports);
@@ -74,7 +76,7 @@ export function verifyTransfer(tx,intent) {
    if(destination)transferred+=BigInt(info.tokenAmount.amount);
   }
  }
- return transferred===BigInt(intent.units);
+ return transferred===BigInt(intent.units)||fail('The verified token, recipient or transferred amount differs from this payment.');
 }
 async function settle(db,env,row,signature) {
  if(row.status==='paid')return row;
@@ -82,7 +84,7 @@ async function settle(db,env,row,signature) {
  const tx=await rpc(env,'getTransaction',[signature,{encoding:'jsonParsed',commitment:'finalized',maxSupportedTransactionVersion:0}]);
  if(!tx)return row;
  if(tx.meta?.err) throw Object.assign(Error('Transaction failed on Solana. No transfer was completed.'), { failed: true });
- if(!verifyTransfer(tx,row))throw Object.assign(Error('Transaction does not match this payment'),{errorCode:'TRANSFER_MISMATCH'});
+ let verificationDetail='';if(!verifyTransfer(tx,row,detail=>verificationDetail=detail))throw Object.assign(Error('Transaction does not match this payment'),{errorCode:'TRANSFER_MISMATCH',verificationDetail});
  await db.batch([
   db.prepare(`INSERT INTO payment_receipts (signature,intent_id,confirmed_at) VALUES (?,?,?) ON CONFLICT(signature) DO NOTHING`).bind(signature,row.id,Date.now()),
   db.prepare(`UPDATE payment_intents SET status='paid', signature=? WHERE id=? AND status='pending' AND EXISTS (SELECT 1 FROM payment_receipts WHERE signature=? AND intent_id=?)`).bind(signature,row.id,signature,row.id)
@@ -97,7 +99,7 @@ async function limit(request,db){
 }
 export async function payments(request,env,url) {
  const route=url.pathname.slice('/pay/_payments'.length);
- if(route==='/connection'&&request.method==='GET')return json({rpcConfigured:Boolean(env.SOLANA_RPC_URL),paymentsEnabled:env.PAYMENTS_ENABLED==='true'});
+ if(route==='/connection'&&request.method==='GET')return json({rpcConfigured:Boolean(env.SOLANA_RPC_URL),paymentsEnabled:env.PAYMENTS_ENABLED==='true',paymentVersion:'participants15'});
  if(route==='/prices'&&request.method==='GET'){
   try{return json(await marketPrices(env));}catch{return json({error:'USD market prices are temporarily unavailable.'},503);}
  }
@@ -128,5 +130,5 @@ export async function payments(request,env,url) {
    for(const tx of found||[]){if(tx.err)continue;try{row=await settle(db,env,row,tx.signature);}catch{}if(row.status==='paid')break;}
   }else if(request.method!=='GET'||match[3])return json({error:'Method not allowed'},405);
   return json(view(row));
- }catch(error){const message=error.message||'Payment service unavailable';const invalid=/Invalid|valid |outside|claimed|different|long|does not match|too large|JSON/.test(message);return json({error:message,...(error.errorCode?{errorCode:error.errorCode}:{}),...(error.failed?{failed:true}:{})},invalid||error.failed?400:503);}
+ }catch(error){const message=error.message||'Payment service unavailable';const invalid=/Invalid|valid |outside|claimed|different|long|does not match|too large|JSON/.test(message);return json({error:message,...(error.errorCode?{errorCode:error.errorCode,verificationDetail:error.verificationDetail}:{}),...(error.failed?{failed:true}:{})},invalid||error.failed?400:503);}
 }

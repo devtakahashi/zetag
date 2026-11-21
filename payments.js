@@ -1,27 +1,47 @@
 'use strict';
 (() => {
  const base=new URL('/pay/_payments/',location.origin);
- async function api(path,body){const r=await fetch(new URL(path,base),{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(20000)});const data=await r.json();if(!r.ok)throw Object.assign(Error(data.error||'Payment service unavailable'), {failed: data.failed === true, errorCode:data.errorCode});return data;}
+ async function api(path,body){const r=await fetch(new URL(path,base),{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(20000)});const data=await r.json();if(!r.ok)throw Object.assign(Error(data.error||'Payment service unavailable'), {failed: data.failed === true, errorCode:data.errorCode, verificationDetail:data.verificationDetail});return data;}
  const rpc=ZeTagSolana.connection(new URL('rpc',base).href);
  const dialog=document.createElement('dialog');dialog.className='payment-review-dialog';dialog.setAttribute('aria-labelledby','transfer-title');
- dialog.innerHTML='<p class="transfer-eyebrow">ZEPAY · SECURE TRANSFER</p><div class="dialog-heading"><h2 id="transfer-title">Review payment</h2><button class="wallet-close" type="button" aria-label="Close payment review">×</button></div><p id="transfer-recipient"></p><p class="transfer-total" id="transfer-total"></p><dl class="transfer-details"><div><dt>Network</dt><dd>Solana mainnet</dd></div><div><dt>Network fee</dt><dd id="transfer-fee">Calculating…</dd></div><div><dt>Token account creation</dt><dd id="transfer-rent">Calculating…</dd></div></dl><p id="transfer-note" class="transfer-note help"></p><p id="transfer-status" class="help" role="status" aria-live="polite"></p><a id="transfer-receipt" target="_blank" rel="noopener" hidden>View transaction receipt</a><button id="transfer-confirm" class="primary" type="button" disabled>Confirm and send</button><button id="transfer-check" class="secondary" type="button" hidden>Check payment</button><a id="transfer-return" class="linkbutton" hidden>Return to store</a>';
+ dialog.innerHTML='<p class="transfer-eyebrow">ZEPAY · SECURE TRANSFER</p><div class="dialog-heading"><button id="transfer-back" class="transfer-back" type="button" aria-label="Back to amount">←</button><h2 id="transfer-title">Review payment</h2><button class="wallet-close" type="button" aria-label="Close payment review">×</button></div><div id="transfer-recipient" class="transfer-parties"></div><div class="transfer-amount-summary"><p class="transfer-total" id="transfer-total"></p><p id="transfer-usd" class="transfer-usd" hidden></p></div><dl class="transfer-details"><div><dt>Network</dt><dd>Solana mainnet</dd></div><div><dt>Network fee</dt><dd id="transfer-fee">Calculating…</dd></div><div><dt>Token account creation</dt><dd id="transfer-rent">Calculating…</dd></div></dl><p id="transfer-note" class="transfer-note help"></p><p id="transfer-status" class="help" role="status" aria-live="polite"></p><a id="transfer-receipt" target="_blank" rel="noopener" hidden>View transaction receipt</a><button id="transfer-confirm" class="primary" type="button" disabled>Confirm and send</button><button id="transfer-check" class="secondary" type="button" hidden>Check payment</button><a id="transfer-return" class="linkbutton" hidden>Return to store</a>';
  document.body.append(dialog);const get=id=>dialog.querySelector('#transfer-'+id);
- let intent=null,plan=null,signer='',sending=false,checking=false,pending=null,pollTimer=null,pollAttempts=0;
+ let intent=null,plan=null,signer='',sending=false,checking=false,pending=null,pollTimer=null,pollAttempts=0,backAction=null;
+ const partyRuns=new WeakMap();
+ function party(profile,label,role){
+  const el=document.createElement('div');el.className='transfer-person';
+  const face=window.ZeTagUI?.avatar?ZeTagUI.avatar(profile,'avatar-contact'):document.createElement('span');
+  if(!window.ZeTagUI?.avatar){face.className='mini-avatar avatar-contact';face.textContent=(profile?.tag||label).slice(0,2).toUpperCase();}
+  const text=document.createElement('span');text.className='transfer-person-text';const caption=document.createElement('small');caption.textContent=role;
+  const tag=document.createElement('strong');tag.textContent=profile?.tag?'@'+profile.tag:label;tag.title=tag.textContent;text.append(caption,tag);el.append(face,text);return el;
+ }
+ async function parties(target,receiver,sender=ZeTagWallet.address){
+  const run={};partyRuns.set(target,run);const short=value=>value?value.slice(0,4)+'…'+value.slice(-4):'Connect wallet';
+  const draw=owner=>{if(partyRuns.get(target)!==run)return;const connector=document.createElement('span');connector.className='transfer-connector';connector.textContent='Sending to';target.replaceChildren(party(owner,short(sender),'From'),connector,party(receiver,receiver?.name||'Recipient','To'));};
+  draw(null);
+  if(sender&&sender===ZeTagWallet.address&&window.ZeTagUI?.api){try{const me=await ZeTagUI.api('/_me');if(me.wallet===sender)draw(me.profile);}catch{}}
+ }
+ async function reviewPeople(data){
+  const target=get('recipient');const receiver={tag:data.tag,name:data.name};void parties(target,receiver,data.sender||ZeTagWallet.address);
+  if(data.tag&&window.ZeTagUI?.api){try{const person=await ZeTagUI.api('/'+encodeURIComponent(data.tag));if(intent?.id===data.id)void parties(target,person,data.sender||ZeTagWallet.address);}catch{}}
+ }
+ async function estimateUsd(data){get('usd').hidden=true;try{const rates=await api('prices');const rate=rates.prices?.[data.asset];if(intent?.id!==data.id||!Number.isFinite(rate?.usd)||Date.now()-rate.updatedAt>300000)return;const estimate=Number(data.amount)*rate.usd;if(!Number.isFinite(estimate))return;get('usd').textContent=estimate>0&&estimate<.01?'< $0.01':'≈ '+new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(estimate);get('usd').hidden=false;}catch{}}
+ get('back').onclick=()=>{if(sending||pending)return;dialog.close();backAction?.();};
  function remember(data){pending=data;try{if(data)localStorage.setItem('zetag:pending-payment',JSON.stringify(data));else localStorage.removeItem('zetag:pending-payment');}catch{}}
  try{pending=JSON.parse(localStorage.getItem('zetag:pending-payment'));if(!pending?.id)pending=null;}catch{}
  dialog.querySelector('.wallet-close').onclick=()=>{if(!sending)dialog.close();};
  dialog.addEventListener('cancel',e=>{if(sending)e.preventDefault();});
- function submitted(){get('title').textContent='Payment status';get('check').hidden=false;if(pending?.signature){get('receipt').href='https://explorer.solana.com/tx/'+pending.signature;get('receipt').textContent='View transaction';get('receipt').hidden=false;}}
- function paid(data){get('title').textContent='Payment complete';dialog.dataset.state='paid';clearTimeout(pollTimer);plan=null;intent=data;get('status').textContent='Payment confirmed.';get('confirm').hidden=true;get('check').hidden=true;get('receipt').href='https://explorer.solana.com/tx/'+data.signature;get('receipt').hidden=false;remember(null);document.dispatchEvent(new CustomEvent('zetag:payment-confirmed',{detail:data}));if(data.returnUrl){const u=new URL(data.returnUrl);if(u.protocol==='https:'){get('return').href=u.href;get('return').hidden=false;}}}
+ function submitted(){get('back').hidden=true;get('fee').textContent=pending?.fee?ZeTagTokens.formatUnits(BigInt(pending.fee),'SOL')+' SOL':'See transaction';get('rent').textContent=pending?.rent?ZeTagTokens.formatUnits(BigInt(pending.rent),'SOL')+' SOL':'See transaction';get('title').textContent='Payment status';get('check').hidden=false;if(pending?.signature){get('receipt').href='https://explorer.solana.com/tx/'+pending.signature;get('receipt').textContent='View transaction';get('receipt').hidden=false;}}
+ function paid(data){get('back').hidden=true;if(get('fee').textContent==='Calculating…')get('fee').textContent='See transaction';if(get('rent').textContent==='Calculating…')get('rent').textContent='See transaction';get('title').textContent='Payment complete';dialog.dataset.state='paid';clearTimeout(pollTimer);plan=null;intent=data;get('status').textContent='Payment confirmed.';get('confirm').hidden=true;get('check').hidden=true;get('receipt').href='https://explorer.solana.com/tx/'+data.signature;get('receipt').hidden=false;remember(null);document.dispatchEvent(new CustomEvent('zetag:payment-confirmed',{detail:data}));if(data.returnUrl){const u=new URL(data.returnUrl);if(u.protocol==='https:'){get('return').href=u.href;get('return').hidden=false;}}}
  dialog.addEventListener('close',()=>clearTimeout(pollTimer));
  async function check(){
   if(checking||!intent)return;submitted();dialog.dataset.state='pending';checking=true;get('check').disabled=true;
-  try{let data=await api('intents/'+intent.id+(pending?.signature?'/confirm':'/recover'),pending?.signature?{signature:pending.signature}:{});if(data.status==='paid')paid(data);else get('status').textContent='Still awaiting final confirmation. Check again shortly. Do not send a second payment.';}
-  catch(e){if(e.failed){remember(null);plan=null;get('confirm').hidden=true;get('check').hidden=true;get('status').textContent=e.message+' Close this review and start again.';}else {dialog.dataset.state='attention';get('status').textContent=e.errorCode==='TRANSFER_MISMATCH'?'Your transaction was submitted, but verification needs another check. Check this payment before sending again.':e.message+' You can check again without sending another payment.';}}
+  try{let data;try{data=await api('intents/'+intent.id+(pending?.signature?'/confirm':'/recover'),pending?.signature?{signature:pending.signature}:{});}catch(error){if(error.errorCode!=='TRANSFER_MISMATCH')throw error;const recovered=await api('intents/'+intent.id+'/recover',{});if(recovered.status!=='paid')throw error;data=recovered;}if(data.status==='paid')paid(data);else get('status').textContent='Still awaiting final confirmation. Check again shortly. Do not send a second payment.';}
+  catch(e){if(e.failed){remember(null);plan=null;get('confirm').hidden=true;get('check').hidden=true;get('status').textContent=e.message+' Close this review and start again.';}else {dialog.dataset.state='attention';get('status').textContent=e.errorCode==='TRANSFER_MISMATCH'?'Your transaction was submitted, but verification needs another check. '+(e.verificationDetail||'')+' Check this payment before sending again.':e.message+' You can check again without sending another payment.';}}
   finally{checking=false;get('check').disabled=false;clearTimeout(pollTimer);if (pending && dialog.open && pollAttempts++ < 30) pollTimer=setTimeout(()=>{if (!document.hidden) void check();},2000);}
  }
- function render(data){get('title').textContent='Review payment';dialog.dataset.state='review';clearTimeout(pollTimer);pollAttempts=0;intent=data;plan=null;get('confirm').hidden=false;get('confirm').disabled=true;get('check').hidden=true;get('receipt').hidden=true;get('return').hidden=true;get('recipient').textContent=data.merchant?data.name:'To @'+data.tag;get('total').textContent=ZeTagTokens.formatAmount(data.amount,data.asset)+' '+data.asset;get('note').textContent=data.note?'For '+data.note:'';get('note').hidden=!data.note;get('fee').textContent='Calculating…';get('rent').textContent='Calculating…';get('status').textContent='';if(!dialog.open)dialog.showModal();}
- async function begin(input){
+ function render(data){get('back').hidden=false;get('title').textContent='Review payment';dialog.dataset.state='review';clearTimeout(pollTimer);pollAttempts=0;intent=data;plan=null;get('confirm').hidden=false;get('confirm').disabled=true;get('check').hidden=true;get('receipt').hidden=true;get('return').hidden=true;void reviewPeople(data);void estimateUsd(data);get('total').textContent=ZeTagTokens.formatAmount(data.amount,data.asset)+' '+data.asset;get('note').textContent=data.note?'For '+data.note:'';get('note').hidden=!data.note;get('fee').textContent='Calculating…';get('rent').textContent='Calculating…';get('status').textContent='';if(!dialog.open)dialog.showModal();}
+ async function begin(input){backAction=typeof input.onBack==='function'?input.onBack:null;
   if(sending)throw Error('A payment is already in progress');
   if(pending){render(await api('intents/'+pending.id));get('confirm').hidden=true;get('check').hidden=false;get('status').textContent='Check your previous payment before starting another.';await check();return;}
   if(!ZeTagWallet.address){document.querySelector('#wallet-button').click();throw Error('Connect your wallet, then review the payment again.');}
@@ -44,9 +64,9 @@
    if(rebuilt.fee!==plan.fee||rebuilt.rent!==plan.rent){plan=rebuilt;get('fee').textContent=ZeTagTokens.formatUnits(BigInt(plan.fee),'SOL')+' SOL';get('rent').textContent=ZeTagTokens.formatUnits(BigInt(plan.rent),'SOL')+' SOL';get('status').textContent='The fee estimate changed. Review it and confirm again.';get('confirm').disabled=false;return;}
    if (signer !== ZeTagWallet.address) throw Error('Wallet changed. Review again.');
    submissionStarted = true;
-   remember({id:data.id,sender:signer,signature:null});
+   remember({id:data.id,sender:signer,signature:null,fee:rebuilt.fee,rent:rebuilt.rent});
    const signature=await ZeTagWallet.sendTransaction(rebuilt.tx,rpc);
-   remember({id:data.id,sender:signer,signature});get('confirm').hidden=true;get('check').hidden=false;get('status').textContent='Submitted. Waiting for final confirmation…';
+   remember({id:data.id,sender:signer,signature,fee:rebuilt.fee,rent:rebuilt.rent});get('confirm').hidden=true;get('check').hidden=false;get('status').textContent='Submitted. Waiting for final confirmation…';
    await check();
   }catch(e){
    if (!submissionStarted) { get('status').textContent=e.message; get('confirm').disabled=false; }
@@ -57,5 +77,5 @@
  get('check').onclick=check;
  // Successful submission never automatically repeats a transfer.
  document.addEventListener('zetag:wallet-changed',()=>{if(intent&&!sending){plan=null;get('confirm').disabled=true;get('status').textContent='Wallet changed. Review the payment again.';}});
- window.ZeTagPayments=Object.freeze({begin,api,rpc});
+ window.ZeTagPayments=Object.freeze({begin,api,rpc,parties});
 })();

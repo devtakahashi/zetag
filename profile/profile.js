@@ -605,8 +605,7 @@
     payForm.reset();
     payEmoji.hidden = true;
     emojiToggle.setAttribute('aria-expanded', 'false');
-    get('zepay-avatar').replaceChildren(miniAvatar(current, 'avatar-contact'));
-    get('zepay-recipient').textContent = '@' + current.tag;
+    void ZeTagPayments.parties(get('zepay-parties'), current);
     payStatus.textContent = '';
     showBalance();
     get('zepay-back').click();
@@ -633,7 +632,7 @@
     const purpose = new FormData(payForm).get('purpose');
     const note = payNote.value.trim();
     pay.close();
-    try { await ZeTagPayments.begin({ tag: current.tag, amount: ZeTagTokens.normalize(amount, ZeTagTokens.selected), asset: ZeTagTokens.selected, note: [purpose, note].filter(Boolean).join(' · ').slice(0, 100) }); }
+    try { await ZeTagPayments.begin({ onBack:()=>pay.showModal(), tag: current.tag, amount: ZeTagTokens.normalize(amount, ZeTagTokens.selected), asset: ZeTagTokens.selected, note: [purpose, note].filter(Boolean).join(' · ').slice(0, 100) }); }
     catch(error) { pay.showModal(); payStatus.textContent = error.message; }
 
   };
