@@ -914,3 +914,45 @@ dialog[open] .transfer-connector > span { animation-play-state:running; }
 .history-list .activity-receipt:hover,.payment-activity-list .activity-receipt:hover { color:#fff; text-decoration:underline; }
 #history-action { width:100%; min-height:42px; }
 @media(max-width:400px) { .activity-person { gap:8px; } .activity-person .mini-avatar { width:32px; height:32px; } .activity-detail > strong,.activity-value > strong { font-size:12px; } .activity-date { font-size:9px; } .transfer-connector { width:44px; } }
+
+/* Three stages: amount/purpose → review → verified sent receipt. */
+.transfer-parties .transfer-person { flex-direction:column; align-items:center; justify-content:flex-start; gap:8px; text-align:center; }
+.transfer-person-text { width:100%; align-items:center; }
+.transfer-parties .transfer-person strong { display:block; max-width:100%; font-size:14px; }
+.transfer-parties .mini-avatar { width:48px; height:48px; }
+.transfer-parties { align-items:start; }
+.transfer-parties .transfer-connector { align-self:start; margin-top:10px; }
+.transfer-progress { display:flex; gap:5px; margin:20px 0 8px; }
+.transfer-progress span { flex:1; height:3px; border-radius:4px; background:#ffffff0b; }
+.transfer-progress[aria-valuenow="1"] span:first-child,.transfer-progress[aria-valuenow="2"] span:nth-child(-n+2),.transfer-progress[aria-valuenow="3"] span { background:#7649ec; }
+.transfer-step { margin:0; color:#9988b1; font-size:10px; letter-spacing:.04em; }
+.transfer-success { padding:10px 0 8px; text-align:center; }
+.transfer-success[hidden],#transfer-review[hidden] { display:none; }
+.success-caption { margin:0 0 12px; color:#aa99c0; font-size:12px; }
+#transfer-success-recipient .transfer-person { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px; text-align:center; }
+#transfer-success-recipient .mini-avatar { width:52px; height:52px; border:2px solid #ffffff16; }
+#transfer-success-recipient strong { font-size:16px; }
+.success-total { margin:22px 0 6px; color:#f6efff; font-size:clamp(28px,7vw,40px); font-weight:800; letter-spacing:-.045em; overflow-wrap:anywhere; }
+.success-note { font-size:12px; color:#ae9cbe; margin:15px 0 0; overflow-wrap:anywhere; }
+.success-confirmed { margin:20px 0 0; color:#98d7b9; font-size:12px; }
+.payment-review-dialog[data-state="paid"] { background:radial-gradient(ellipse at 50% 25%,#40206338,transparent 58%),#151020; }
+.payment-review-dialog #transfer-done { min-height:48px; }
+/* A coin enters the open wallet; the cover closes once, then holds. */
+.wallet-scene { position:relative; width:230px; height:178px; margin:4px auto 10px; perspective:600px; }
+.wallet-aura { position:absolute; inset:20px 10px 0; border-radius:50%; background:radial-gradient(ellipse,#7649ec24,transparent 68%); }
+.wallet-back { position:absolute; left:38px; bottom:24px; width:156px; height:100px; border-radius:19px; background:linear-gradient(135deg,#624498,#2a1b41); border:1px solid #a883e24a; transform:rotate(-6deg); }
+.wallet-pocket { position:absolute; left:38px; bottom:20px; width:156px; height:94px; z-index:3; border:1px solid #9670d14a; border-radius:18px; background:linear-gradient(135deg,#3d265d,#241732); box-shadow:0 18px 35px #0005; }
+.wallet-flap { position:absolute; left:38px; bottom:20px; width:156px; height:94px; z-index:4; border:1px solid #b995ee55; border-radius:18px; background:linear-gradient(125deg,#8355d3,#482776); transform-origin:8px 50%; transform:rotateY(0); backface-visibility:visible; }
+.wallet-flap > span { position:absolute; right:-4px; top:31px; width:48px; height:30px; border:1px solid #ba93f955; border-radius:9px; background:#392050; }
+.wallet-flap > span::after { content:''; position:absolute; right:12px; top:10px; width:7px; height:7px; border-radius:50%; background:#d9c0ff; }
+.wallet-coin { position:absolute; left:93px; top:0; z-index:2; display:grid; place-items:center; width:48px; height:48px; border-radius:50%; border:3px solid #c1a2ff; background:linear-gradient(135deg,#b794ff,#7749df); color:white; font-size:28px; font-weight:700; box-shadow:0 5px 18px #0004; opacity:0; transform:translateY(80px); }
+.wallet-seal { position:absolute; right:22px; bottom:7px; z-index:5; width:35px; height:35px; padding:7px; box-sizing:border-box; border-radius:50%; border:3px solid #151020; background:#a6e3c2; color:#173b2a; }
+.wallet-seal svg { display:block; width:100%; height:100%; }
+.is-celebrating .wallet-flap { animation:wallet-close 2.7s cubic-bezier(.4,0,.2,1) both; }
+.is-celebrating .wallet-coin { animation:wallet-deposit 2.7s cubic-bezier(.4,0,.2,1) both; }
+.is-celebrating .wallet-seal { animation:wallet-verified 2.7s ease both; }
+@keyframes wallet-close { 0%,10% { transform:rotateY(0); } 30%,68% { transform:rotateY(-100deg); } 90%,100% { transform:rotateY(0); } }
+@keyframes wallet-deposit { 0%,27% { opacity:0; transform:translate(-38px,-12px) rotate(-25deg) scale(.8); } 38% { opacity:1; transform:translate(0,0) rotate(0) scale(1); } 64% { opacity:1; transform:translate(0,78px) scale(.92); } 72%,100% { opacity:0; transform:translate(0,90px) scale(.85); } }
+@keyframes wallet-verified { 0%,85% { opacity:0; transform:scale(.5); } 95%,100% { opacity:1; transform:scale(1); } }
+@media(prefers-reduced-motion:reduce) { .is-celebrating .wallet-flap,.is-celebrating .wallet-coin,.is-celebrating .wallet-seal { animation:none; } }
+@media(max-width:400px) { .transfer-parties .mini-avatar { width:42px; height:42px; } .transfer-parties .transfer-person strong { font-size:12px; } .wallet-scene { transform:scale(.9); margin-top:-2px; margin-bottom:0; } }

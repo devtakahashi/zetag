@@ -6,16 +6,16 @@
   <meta name="description" content="Claim a ZeTag and make it yours.">
   <title>Profile | ZeTag</title>
   <link rel="icon" type="image/png" href="../zetag-icon.png">
-  <link rel="stylesheet" href="../style.css?v=history16">
+  <link rel="stylesheet" href="../style.css?v=flow17">
   <link rel="stylesheet" href="profile.css">
-  <script src="../vendor/solana-payments.js?v=history16" defer></script>
-<script src="../payments.js?v=history16" defer></script>
-<script src="../tokens.js?v=history16" defer></script>
-<script src="../profile/ui.js?v=history16" defer></script>
-  <script src="profile.js?v=history16" defer></script>
-<script src="../wallet.js?v=history16" defer></script>
+  <script src="../vendor/solana-payments.js?v=flow17" defer></script>
+<script src="../payments.js?v=flow17" defer></script>
+<script src="../tokens.js?v=flow17" defer></script>
+<script src="../profile/ui.js?v=flow17" defer></script>
+  <script src="profile.js?v=flow17" defer></script>
+<script src="../wallet.js?v=flow17" defer></script>
 <link rel="stylesheet" href="../profile/profile.css">
-<link rel="stylesheet" href="../profile/premium.css?v=history16">
+<link rel="stylesheet" href="../profile/premium.css?v=flow17">
 </head>
 <body>
 <header>
@@ -159,8 +159,9 @@
   <p class="help" id="ping-status" role="status"></p>
 </dialog>
 <dialog id="zepay-dialog" class="profile-dialog" aria-labelledby="zepay-title">
+  <p class="transfer-eyebrow">ZEPAY · SECURE TRANSFER</p>
   <div class="dialog-heading"><h2 id="zepay-title">ZePay</h2><form method="dialog"><button class="wallet-close" aria-label="Close ZePay">×</button></form></div>
-  <div id="zepay-parties" class="transfer-parties" aria-label="Payment participants"></div>
+  <div class="transfer-progress transfer-progress-entry" role="progressbar" aria-label="Payment steps" aria-valuemin="1" aria-valuemax="3" aria-valuenow="1"><span></span><span></span><span></span></div><p class="transfer-step">1 of 3 · Amount &amp; purpose</p><div id="zepay-parties" class="transfer-parties" aria-label="Payment participants"></div>
   <form id="zepay-form">
     <label for="zepay-amount">Amount</label>
     <div class="zepay-amount amount-field"><input id="zepay-amount" inputmode="decimal" placeholder="0.00" maxlength="18" required><button type="button" class="asset-picker" data-asset-picker></button></div>
